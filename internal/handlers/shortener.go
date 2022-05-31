@@ -45,8 +45,8 @@ func (h Shortener) get(w http.ResponseWriter, r *http.Request) {
 // в виде текстовой строки в теле.
 func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
 
-	if r.RequestURI != "/" || r.Body == nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	if r.RequestURI != "/" {
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
 
