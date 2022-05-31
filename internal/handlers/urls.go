@@ -2,57 +2,49 @@ package handlers
 
 import (
 	"errors"
+	"github.com/go-chi/chi/v5"
 	"github.com/ofstudio/go-shortener/internal/app"
 	"io"
 	"log"
 	"net/http"
 )
 
-// Shortener - http.Handler для сокращения URL
-type Shortener struct {
+// URLsResource - хандлеры для сокращения URL
+type URLsResource struct {
 	app *app.App
 }
 
-func NewShortener(app *app.App) *Shortener {
-	return &Shortener{app}
+func NewURLsResource(app *app.App) *URLsResource {
+	return &URLsResource{app}
 }
 
-func (h Shortener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.get(w, r)
-	case http.MethodPost:
-		h.post(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
+func (rs URLsResource) Routes() chi.Router {
+	r := chi.NewRouter()
+	r.Get("/{id}", rs.Get)
+	r.Post("/", rs.Post)
+	return r
 }
 
-// get - эндпоинт GET /{id} принимает в качестве URL-параметра идентификатор сокращённого URL
+// Get - эндпоинт GET /{id} принимает в качестве URL-параметра идентификатор сокращённого URL
 // и возвращает ответ с кодом http.StatusTemporaryRedirect (307) и оригинальным URL
 // в HTTP-заголовке Location.
-func (h Shortener) get(w http.ResponseWriter, r *http.Request) {
-	fullURL, err := h.app.GetLongURL(r.URL.Path[1:])
+func (rs URLsResource) Get(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	fullURL, err := rs.app.GetLongURL(id)
 	if err != nil {
-		h.error(w, err)
+		rs.error(w, err)
 		return
 	}
 	http.Redirect(w, r, fullURL, http.StatusTemporaryRedirect)
 }
 
-// post - эндпоинт POST / принимает в теле запроса строку URL для сокращения
+// Post - эндпоинт POST / принимает в теле запроса строку URL для сокращения
 // и возвращает ответ http.StatusCreated (201) и сокращённым URL
 // в виде текстовой строки в теле.
-func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
-
-	if r.RequestURI != "/" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-
+func (rs URLsResource) Post(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.error(w, err)
+		rs.error(w, err)
 		return
 	}
 
@@ -61,9 +53,9 @@ func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := h.app.CreateShortURL(string(b))
+	shortURL, err := rs.app.CreateShortURL(string(b))
 	if err != nil {
-		h.error(w, err)
+		rs.error(w, err)
 		return
 	}
 
@@ -76,7 +68,7 @@ func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
 }
 
 // error - возвращает http-ошибку, соотвествующую ошибке приложения
-func (h Shortener) error(w http.ResponseWriter, err error) {
+func (rs URLsResource) error(w http.ResponseWriter, err error) {
 	if errors.Is(err, app.ErrURLNotFound) {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
