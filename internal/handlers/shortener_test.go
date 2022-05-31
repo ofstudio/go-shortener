@@ -84,15 +84,15 @@ func TestShortener_post(t *testing.T) {
 		require.Equal(t, res.Header.Get("Content-Type"), "text/plain; charset=utf-8")
 		body, err := ioutil.ReadAll(res.Body)
 		require.NoError(t, err)
-		shortUrl := string(body)
+		shortURL := string(body)
 
-		u, err := url.Parse(shortUrl)
+		u, err := url.Parse(shortURL)
 		require.NoError(t, err)
 		id := u.Path[1:]
 
-		longUrl, err := a.GetLongURL(id)
+		longURL, err := a.GetLongURL(id)
 		require.NoError(t, err)
-		require.Equal(t, "https://me.com/", longUrl)
+		require.Equal(t, "https://me.com/", longURL)
 	})
 
 	t.Run("invalid url", func(t *testing.T) {
