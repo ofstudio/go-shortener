@@ -56,6 +56,11 @@ func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(b) == 0 {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
 	shortURL, err := h.app.CreateShortURL(string(b))
 	if err != nil {
 		h.error(w, err)
