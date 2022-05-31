@@ -58,6 +58,10 @@ func TestURLsResource_Get(t *testing.T) {
 			defer ts.Close()
 
 			res, _ := testRequest(t, ts, http.MethodGet, "/"+tt.id, nil)
+
+			// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+			defer res.Body.Close()
+
 			require.Equal(t, tt.want.statusCode, res.StatusCode)
 			require.Equal(t, tt.want.location, res.Header.Get("Location"))
 		})
@@ -76,6 +80,9 @@ func TestURLsResource_Post(t *testing.T) {
 		defer ts.Close()
 		res, shortURL := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("https://me.com/"))
 
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
+
 		require.Equal(t, http.StatusCreated, res.StatusCode)
 		require.Equal(t, res.Header.Get("Content-Type"), "text/plain; charset=utf-8")
 
@@ -93,6 +100,10 @@ func TestURLsResource_Post(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("file:///etc/passwd"))
+
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
+
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -101,6 +112,10 @@ func TestURLsResource_Post(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("https://me.com/a/b/c/d/e/f/g/h/i/j/k/l/m/"))
+
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
+
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -109,6 +124,10 @@ func TestURLsResource_Post(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/", nil)
+
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
+
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -117,6 +136,10 @@ func TestURLsResource_Post(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/non-existing", strings.NewReader("https://me.com/"))
+
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
+
 		require.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
 	})
 }
@@ -141,6 +164,10 @@ func TestURLsResource_notAllowedHTTPMethods(t *testing.T) {
 		http.MethodTrace,
 	} {
 		res, _ := testRequest(t, ts, method, "/", nil)
+
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
+
 		require.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
 	}
 }
