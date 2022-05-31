@@ -13,9 +13,16 @@ type Config struct {
 }
 
 func NewConfig(urlMaxLen int, publicURL string) *Config {
-	// Нормализуем publicURL - добавляем `/` в конце
-	if publicURL[len(publicURL)-1:] != "/" {
-		publicURL += "/"
+	return &Config{
+		urlMaxLen: urlMaxLen,
+		publicURL: normalizeURL(publicURL),
 	}
-	return &Config{urlMaxLen: urlMaxLen, publicURL: publicURL}
+}
+
+// normalizeURL - нормализует URL: добавляем `/` в конце
+func normalizeURL(url string) string {
+	if url[len(url)-1:] != "/" {
+		url += "/"
+	}
+	return url
 }
