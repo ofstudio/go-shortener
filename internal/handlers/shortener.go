@@ -45,8 +45,8 @@ func (h Shortener) get(w http.ResponseWriter, r *http.Request) {
 // в виде текстовой строки в теле.
 func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
 
-	if r.RequestURI != "/" || r.Body == nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	if r.RequestURI != "/" {
+		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
 
@@ -56,12 +56,18 @@ func (h Shortener) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(b) == 0 {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
 	shortURL, err := h.app.CreateShortURL(string(b))
 	if err != nil {
 		h.error(w, err)
 		return
 	}
 
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	if _, err = w.Write([]byte(shortURL)); err != nil {
 		log.Println(err)
