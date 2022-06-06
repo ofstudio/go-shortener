@@ -9,7 +9,7 @@ import (
 )
 
 func TestShortenerService_validateURL(t *testing.T) {
-	cfg := &config.Config{UrlMaxLen: 20, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 20, PublicURL: "https://example.com/"}
 	srv := NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("valid URL", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestShortenerService_validateURL(t *testing.T) {
 }
 
 func TestShortenerService_CreateShortURL(t *testing.T) {
-	cfg := &config.Config{UrlMaxLen: 1024, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 1024, PublicURL: "https://example.com/"}
 	srv := NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful url short", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestShortenerService_CreateShortURL(t *testing.T) {
 }
 
 func TestShortenerService_GetLongURL(t *testing.T) {
-	cfg := &config.Config{UrlMaxLen: 1024, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 1024, PublicURL: "https://example.com/"}
 	srv := NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful get long url", func(t *testing.T) {

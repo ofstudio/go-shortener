@@ -15,7 +15,7 @@ import (
 )
 
 func TestShortenerHandlers_GetLongURLSh(t *testing.T) {
-	cfg := &config.Config{UrlMaxLen: 1024, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 1024, PublicURL: "https://example.com/"}
 	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	shortURL, err := srv.CreateShortURL("https://me.com/")
@@ -77,7 +77,7 @@ func TestShortenerHandlers_GetLongURLSh(t *testing.T) {
 }
 
 func TestShortenerHandlers_CreateShortURL(t *testing.T) {
-	cfg := &config.Config{UrlMaxLen: 20, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 20, PublicURL: "https://example.com/"}
 	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful", func(t *testing.T) {
@@ -151,7 +151,7 @@ func TestShortenerHandlers_CreateShortURL(t *testing.T) {
 }
 
 func TestShortenerHandlers_notAllowedHTTPMethods(t *testing.T) {
-	cfg := &config.Config{UrlMaxLen: 1024, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 1024, PublicURL: "https://example.com/"}
 	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	r := NewShortenerHandlers(srv).Routes()

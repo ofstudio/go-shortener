@@ -49,7 +49,7 @@ func (srv ShortenerService) GetLongURL(id string) (string, error) {
 // validateURL - проверяет URL на максимальную длину и http/https-протокол
 func (srv ShortenerService) validateURL(rawURL string) error {
 	// Проверка на максимальную длину URL
-	if len(rawURL) > srv.cfg.UrlMaxLen {
+	if len(rawURL) > srv.cfg.URLMaxLen {
 		return ErrValidation
 	}
 

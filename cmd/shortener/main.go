@@ -13,7 +13,7 @@ import (
 
 func main() {
 	cfg := &config.Config{
-		UrlMaxLen: 4096,
+		URLMaxLen: 4096,
 		PublicURL: "http://localhost:8080/",
 	}
 	db := storage.NewMemoryStorage()
