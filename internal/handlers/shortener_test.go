@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"github.com/ofstudio/go-shortener/internal/app"
+	"github.com/ofstudio/go-shortener/internal/app/config"
+	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/storage"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -13,12 +14,11 @@ import (
 	"testing"
 )
 
-func TestURLsResource_Get(t *testing.T) {
-	ulrMaxLen := 20
-	publicURL := "https://example.com"
-	cfg := app.NewConfig(ulrMaxLen, publicURL)
-	a := app.NewApp(cfg, storage.NewMemory())
-	shortURL, err := a.CreateShortURL("https://me.com/")
+func TestShortenerHandlers_GetLongURLSh(t *testing.T) {
+	cfg := &config.Config{UrlMaxLen: 1024, PublicURL: "https://example.com/"}
+	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
+
+	shortURL, err := srv.CreateShortURL("https://me.com/")
 	require.NoError(t, err)
 	u, err := url.Parse(shortURL)
 	require.NoError(t, err)
@@ -53,7 +53,7 @@ func TestURLsResource_Get(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := NewURLsResource(a).Routes()
+			r := NewShortenerHandlers(srv).Routes()
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -68,14 +68,12 @@ func TestURLsResource_Get(t *testing.T) {
 	}
 }
 
-func TestURLsResource_Post(t *testing.T) {
-	ulrMaxLen := 20
-	publicURL := "https://example.com"
-	cfg := app.NewConfig(ulrMaxLen, publicURL)
-	a := app.NewApp(cfg, storage.NewMemory())
+func TestShortenerHandlers_CreateShortURL(t *testing.T) {
+	cfg := &config.Config{UrlMaxLen: 20, PublicURL: "https://example.com/"}
+	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful", func(t *testing.T) {
-		r := NewURLsResource(a).Routes()
+		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, shortURL := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("https://me.com/"))
@@ -90,13 +88,13 @@ func TestURLsResource_Post(t *testing.T) {
 		require.NoError(t, err)
 		id := u.Path[1:]
 
-		longURL, err := a.GetLongURL(id)
+		longURL, err := srv.GetLongURL(id)
 		require.NoError(t, err)
 		require.Equal(t, "https://me.com/", longURL)
 	})
 
 	t.Run("invalid url", func(t *testing.T) {
-		r := NewURLsResource(a).Routes()
+		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("file:///etc/passwd"))
@@ -108,7 +106,7 @@ func TestURLsResource_Post(t *testing.T) {
 	})
 
 	t.Run("too long url", func(t *testing.T) {
-		r := NewURLsResource(a).Routes()
+		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("https://me.com/a/b/c/d/e/f/g/h/i/j/k/l/m/"))
@@ -120,7 +118,7 @@ func TestURLsResource_Post(t *testing.T) {
 	})
 
 	t.Run("empty body", func(t *testing.T) {
-		r := NewURLsResource(a).Routes()
+		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/", nil)
@@ -132,7 +130,7 @@ func TestURLsResource_Post(t *testing.T) {
 	})
 
 	t.Run("invalid endpoint", func(t *testing.T) {
-		r := NewURLsResource(a).Routes()
+		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/non-existing", strings.NewReader("https://me.com/"))
@@ -144,12 +142,11 @@ func TestURLsResource_Post(t *testing.T) {
 	})
 }
 
-func TestURLsResource_notAllowedHTTPMethods(t *testing.T) {
-	ulrMaxLen := 20
-	publicURL := "https://example.com"
-	cfg := app.NewConfig(ulrMaxLen, publicURL)
-	a := app.NewApp(cfg, storage.NewMemory())
-	r := NewURLsResource(a).Routes()
+func TestShortenerHandlers_notAllowedHTTPMethods(t *testing.T) {
+	cfg := &config.Config{UrlMaxLen: 1024, PublicURL: "https://example.com/"}
+	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
+
+	r := NewShortenerHandlers(srv).Routes()
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
@@ -166,7 +163,7 @@ func TestURLsResource_notAllowedHTTPMethods(t *testing.T) {
 		res, _ := testRequest(t, ts, method, "/", nil)
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
+		_ = res.Body.Close()
 
 		require.Equal(t, http.StatusMethodNotAllowed, res.StatusCode)
 	}
