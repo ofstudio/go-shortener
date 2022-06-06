@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-func TestNew(t *testing.T) {
+func TestGenerate(t *testing.T) {
 	t.Run("successful generation", func(t *testing.T) {
-		got := New()
+		got := Generate()
 		require.NotEmpty(t, got)
 	})
 	t.Run("url friendly", func(t *testing.T) {
-		got := New()
+		got := Generate()
 		require.Equal(t, got, url.QueryEscape(got))
 	})
 	t.Run("uniqueness", func(t *testing.T) {
-		got1 := New()
-		got2 := New()
+		got1 := Generate()
+		got2 := Generate()
 		require.NotEqual(t, got1, got2)
 	})
 }
