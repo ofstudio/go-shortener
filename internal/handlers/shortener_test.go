@@ -49,6 +49,14 @@ func TestShortenerHandlers_GetLongURLSh(t *testing.T) {
 				location:   "",
 			},
 		},
+		{
+			name: "another wrong id",
+			id:   "../etc/passwd",
+			want: want{
+				statusCode: http.StatusNotFound,
+				location:   "",
+			},
+		},
 	}
 
 	for _, tt := range tests {
