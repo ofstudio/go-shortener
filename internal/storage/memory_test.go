@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestMemory_Get(t *testing.T) {
-	m := NewMemory()
+func TestMemoryStorage_Get(t *testing.T) {
+	m := NewMemoryStorage()
 	t.Run("successful read", func(t *testing.T) {
 		key, val := "k1", "v1"
 		err := m.Set(key, val)
@@ -22,8 +22,8 @@ func TestMemory_Get(t *testing.T) {
 	})
 }
 
-func TestMemory_Set(t *testing.T) {
-	m := NewMemory()
+func TestMemoryStorage_Set(t *testing.T) {
+	m := NewMemoryStorage()
 	t.Run("successful write", func(t *testing.T) {
 		key, val := "k1", "v1"
 		err := m.Set(key, val)
