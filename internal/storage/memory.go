@@ -1,22 +1,29 @@
 package storage
 
-// Memory - реализация KV-стораджа storage.Interface в памяти
-type Memory struct {
+import "sync"
+
+// MemoryStorage - реализация KV-стораджа storage.Interface в памяти
+type MemoryStorage struct {
 	data map[string]string
+	sync.RWMutex
 }
 
-func NewMemory() *Memory {
-	return &Memory{data: make(map[string]string)}
+func NewMemoryStorage() *MemoryStorage {
+	return &MemoryStorage{data: make(map[string]string)}
 }
 
-func (m Memory) Get(key string) (string, error) {
-	if val, ok := m.data[key]; ok {
+func (s *MemoryStorage) Get(key string) (string, error) {
+	s.RLock()
+	defer s.RUnlock()
+	if val, ok := s.data[key]; ok {
 		return val, nil
 	}
 	return "", ErrNotFound
 }
 
-func (m Memory) Set(key, val string) error {
-	m.data[key] = val
+func (s *MemoryStorage) Set(key, val string) error {
+	s.Lock()
+	defer s.Unlock()
+	s.data[key] = val
 	return nil
 }

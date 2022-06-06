@@ -1,43 +1,44 @@
-package app
+package services
 
 import (
-	"github.com/ofstudio/go-shortener/internal/shortid"
+	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/storage"
+	"github.com/ofstudio/go-shortener/pkg/shortid"
 	"net/url"
 )
 
-type App struct {
-	cfg *Config
+type ShortenerService struct {
+	cfg *config.Config
 	db  storage.Interface
 }
 
-func NewApp(cfg *Config, db storage.Interface) *App {
-	return &App{cfg, db}
+func NewShortenerService(cfg *config.Config, db storage.Interface) *ShortenerService {
+	return &ShortenerService{cfg, db}
 }
 
 // CreateShortURL - создает и возвращает короткий URL
-func (a App) CreateShortURL(longURL string) (string, error) {
+func (srv ShortenerService) CreateShortURL(longURL string) (string, error) {
 	// Проверяем URL на валидность
-	if err := a.validateURL(longURL); err != nil {
+	if err := srv.validateURL(longURL); err != nil {
 		return "", err
 	}
 
 	// Генерируем id для URL и сохраняем URL в сторадж
-	id := shortid.New()
-	if a.db.Set(id, longURL) != nil {
+	id := shortid.Generate()
+	if srv.db.Set(id, longURL) != nil {
 		return "", ErrInternal
 	}
 
 	// Возвращаем короткий URL
-	return a.cfg.publicURL + id, nil
+	return srv.cfg.PublicURL + id, nil
 }
 
 // GetLongURL - возвращает исходный URL по его id
-func (a App) GetLongURL(id string) (string, error) {
-	val, err := a.db.Get(id)
+func (srv ShortenerService) GetLongURL(id string) (string, error) {
+	val, err := srv.db.Get(id)
 	if err != nil {
 		if storage.IsNotFound(err) {
-			return "", ErrURLNotFound
+			return "", ErrShortURLNotFound
 		} else {
 			return "", ErrInternal
 		}
@@ -46,9 +47,9 @@ func (a App) GetLongURL(id string) (string, error) {
 }
 
 // validateURL - проверяет URL на максимальную длину и http/https-протокол
-func (a App) validateURL(rawURL string) error {
+func (srv ShortenerService) validateURL(rawURL string) error {
 	// Проверка на максимальную длину URL
-	if len(rawURL) > a.cfg.urlMaxLen {
+	if len(rawURL) > srv.cfg.URLMaxLen {
 		return ErrValidation
 	}
 
