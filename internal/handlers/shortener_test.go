@@ -65,7 +65,7 @@ func TestShortenerHandlers_GetLongURLSh(t *testing.T) {
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			res, _ := testRequest(t, ts, http.MethodGet, "/"+tt.id, nil)
+			res, _ := testRequest(t, ts, http.MethodGet, "/"+tt.id, "text/plain", nil)
 
 			// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 			defer res.Body.Close()
@@ -84,7 +84,7 @@ func TestShortenerHandlers_CreateShortURL(t *testing.T) {
 		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
-		res, shortURL := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("https://me.com/"))
+		res, shortURL := testRequest(t, ts, http.MethodPost, "/", "text/plain", strings.NewReader("https://me.com/"))
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 		defer res.Body.Close()
@@ -105,7 +105,7 @@ func TestShortenerHandlers_CreateShortURL(t *testing.T) {
 		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("file:///etc/passwd"))
+		res, _ := testRequest(t, ts, http.MethodPost, "/", "text/plain", strings.NewReader("file:///etc/passwd"))
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 		defer res.Body.Close()
@@ -117,7 +117,7 @@ func TestShortenerHandlers_CreateShortURL(t *testing.T) {
 		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader("https://me.com/a/b/c/d/e/f/g/h/i/j/k/l/m/"))
+		res, _ := testRequest(t, ts, http.MethodPost, "/", "", strings.NewReader("https://me.com/a/b/c/d/e/f/g/h/i/j/k/l/m/"))
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 		defer res.Body.Close()
@@ -129,7 +129,7 @@ func TestShortenerHandlers_CreateShortURL(t *testing.T) {
 		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/", nil)
+		res, _ := testRequest(t, ts, http.MethodPost, "/", "", nil)
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 		defer res.Body.Close()
@@ -141,7 +141,7 @@ func TestShortenerHandlers_CreateShortURL(t *testing.T) {
 		r := NewShortenerHandlers(srv).Routes()
 		ts := httptest.NewServer(r)
 		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/non-existing", strings.NewReader("https://me.com/"))
+		res, _ := testRequest(t, ts, http.MethodPost, "/non-existing", "", strings.NewReader("https://me.com/"))
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 		defer res.Body.Close()
@@ -168,7 +168,7 @@ func TestShortenerHandlers_notAllowedHTTPMethods(t *testing.T) {
 		http.MethodOptions,
 		http.MethodTrace,
 	} {
-		res, _ := testRequest(t, ts, method, "/", nil)
+		res, _ := testRequest(t, ts, method, "/", "", nil)
 
 		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
 		_ = res.Body.Close()
@@ -178,7 +178,7 @@ func TestShortenerHandlers_notAllowedHTTPMethods(t *testing.T) {
 }
 
 // testRequest - общая функция для отправки тестовых запросов
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+func testRequest(t *testing.T, ts *httptest.Server, method, path, contentType string, body io.Reader) (*http.Response, string) {
 	// HTTP клиент, который не переходит по редиректам
 	// https://stackoverflow.com/a/38150816
 	client := &http.Client{
@@ -189,6 +189,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
+
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 
 	res, err := client.Do(req)
 	require.NoError(t, err)

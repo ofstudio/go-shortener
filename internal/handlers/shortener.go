@@ -4,7 +4,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -31,7 +30,7 @@ func (h ShortenerHandlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	fullURL, err := h.srv.GetLongURL(id)
 	if err != nil {
-		errorResponse(w, err)
+		respondWithError(w, err)
 		return
 	}
 	http.Redirect(w, r, fullURL, http.StatusTemporaryRedirect)
@@ -43,7 +42,7 @@ func (h ShortenerHandlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 func (h ShortenerHandlers) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		errorResponse(w, err)
+		respondWithError(w, err)
 		return
 	}
 
@@ -54,13 +53,11 @@ func (h ShortenerHandlers) CreateShortURL(w http.ResponseWriter, r *http.Request
 
 	shortURL, err := h.srv.CreateShortURL(string(b))
 	if err != nil {
-		errorResponse(w, err)
+		respondWithError(w, err)
 		return
 	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	if _, err = w.Write([]byte(shortURL)); err != nil {
-		log.Println(err)
-	}
+	_, _ = w.Write([]byte(shortURL))
 }
