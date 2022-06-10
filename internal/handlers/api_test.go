@@ -22,6 +22,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, resBody := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusCreated, res.StatusCode)
 		require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 		shortURLRes := createShortURLRes{}
@@ -35,6 +37,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -44,6 +48,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -53,6 +59,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -62,6 +70,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -71,6 +81,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -80,6 +92,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
@@ -89,6 +103,8 @@ func TestAPIHandlers_CreateShortURL(t *testing.T) {
 		ts := httptest.NewServer(r)
 		defer ts.Close()
 		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/xml", reqBody)
+		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
+		defer res.Body.Close()
 		require.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 }
