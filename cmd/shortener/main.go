@@ -18,11 +18,13 @@ func main() {
 	}
 	db := storage.NewMemoryStorage()
 	srv := services.NewShortenerService(cfg, db)
-	h := handlers.NewShortenerHandlers(srv)
+	appHandlers := handlers.NewShortenerHandlers(srv)
+	apiHandlers := handlers.NewAPIHandlers(srv)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Mount("/", h.Routes())
+	r.Mount("/", appHandlers.Routes())
+	r.Mount("/api/", apiHandlers.Routes())
 
 	server := &http.Server{
 		Addr:    "localhost:8080",
