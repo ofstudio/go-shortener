@@ -31,7 +31,7 @@ func (h ShortenerHandlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 	fullURL, err := h.srv.GetLongURL(id)
 	if err != nil {
 		respondWithError(w, err)
-		return
+	return
 	}
 	http.Redirect(w, r, fullURL, http.StatusTemporaryRedirect)
 }
@@ -54,10 +54,14 @@ func (h ShortenerHandlers) CreateShortURL(w http.ResponseWriter, r *http.Request
 	shortURL, err := h.srv.CreateShortURL(string(b))
 	if err != nil {
 		respondWithError(w, err)
+		errorResponse(w, err)
 		return
 	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write([]byte(shortURL))
+	if _, err = w.Write([]byte(shortURL)); err != nil {
+		log.Println(err)
+	}
 }
