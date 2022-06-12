@@ -67,15 +67,27 @@ func TestAOFStorage(t *testing.T) {
 		require.Equal(t, ErrNotFound, err)
 	})
 
-	// Невалидные строки в файле
-	t.Run("invalid aof file", func(t *testing.T) {
-		filePath := dir + "/invalid.aof"
+	// Отсуствуют необходимые поля в JSON-строке
+	t.Run("json string fields mismatch", func(t *testing.T) {
+		filePath := dir + "/mismatch.aof"
 		f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		require.NoError(t, err)
 		_, err = f.Write([]byte(`{"invalid": "key", "wrong": "value"}`))
 		require.NoError(t, err)
 		defer f.Close()
+		_, err = NewAOFStorage(filePath)
+		require.Error(t, err)
+		require.Equal(t, ErrAOFRead, err)
+	})
 
+	// Невалидная JSON-строка
+	t.Run("invalid json string", func(t *testing.T) {
+		filePath := dir + "/invalid.aof"
+		f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		require.NoError(t, err)
+		defer f.Close()
+		_, err = f.Write([]byte(`{not: a json string}`))
+		require.NoError(t, err)
 		_, err = NewAOFStorage(filePath)
 		require.Error(t, err)
 		require.Equal(t, ErrAOFRead, err)
