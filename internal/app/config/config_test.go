@@ -10,8 +10,8 @@ func TestNewFromEnv(t *testing.T) {
 	t.Run("no env", func(t *testing.T) {
 		cfg, err := NewFromEnv()
 		require.NoError(t, err)
-		require.Equal(t, defaultConfig.BaseURL, cfg.BaseURL)
-		require.Equal(t, defaultConfig.ServerAddress, cfg.ServerAddress)
+		require.Equal(t, DefaultConfig.BaseURL, cfg.BaseURL)
+		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
 	})
 
 	t.Run("with env", func(t *testing.T) {
@@ -44,5 +44,56 @@ func TestNewFromEnv(t *testing.T) {
 		_ = os.Setenv("BASE_URL", "https://example.com/?foo=bar")
 		_, err := NewFromEnv()
 		require.Error(t, err)
+	})
+}
+
+func TestNewFromEnvAndCLI(t *testing.T) {
+	// Все параметры заданы через коммандную строку
+	t.Run("with CLI", func(t *testing.T) {
+		args := []string{"-a", "127.0.0.0:8888", "-b", "https://example.com/", "-f", "/tmp/shortener.aof"}
+		cfg, err := newFromEnvAndCLI(args)
+		require.NoError(t, err)
+		require.Equal(t, "https://example.com/", cfg.BaseURL)
+		require.Equal(t, "127.0.0.0:8888", cfg.ServerAddress)
+		require.Equal(t, "/tmp/shortener.aof", cfg.FileStoragePath)
+	})
+
+	// Через командную строку задан только BaseURL, остальыне параметры используют значения по умолчанию
+	t.Run("with CLI only BaseURL", func(t *testing.T) {
+		args := []string{"-b", "https://example.com/"}
+		cfg, err := newFromEnvAndCLI(args)
+		require.NoError(t, err)
+		require.Equal(t, "https://example.com/", cfg.BaseURL)
+		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
+		require.Equal(t, DefaultConfig.FileStoragePath, cfg.FileStoragePath)
+	})
+
+	// Через окружение задан BaseUrl и FileStoragePath.
+	// Через командную строку задан FileStoragePath.
+	// Остальыне параметры используют значения по умолчанию
+	t.Run("with env and CLI", func(t *testing.T) {
+		_ = os.Setenv("BASE_URL", "https://example.com/")
+		_ = os.Setenv("FILE_STORAGE_PATH", "/tmp/env.aof")
+		args := []string{"-f", "/tmp/cli.aof"}
+		cfg, err := newFromEnvAndCLI(args)
+		require.NoError(t, err)
+		require.Equal(t, "https://example.com/", cfg.BaseURL)
+		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
+		require.Equal(t, "/tmp/cli.aof", cfg.FileStoragePath)
+	})
+
+	// Проверка на корректный BaseURL
+	t.Run("with invalid BaseURL", func(t *testing.T) {
+		args := []string{"-b", "invalid_url"}
+		_, err := newFromEnvAndCLI(args)
+		require.Error(t, err)
+	})
+
+	// Проверка на добавление в конец BaseURL слеша
+	t.Run("with slash in BaseURL", func(t *testing.T) {
+		args := []string{"-b", "https://example.com/a/b"}
+		cfg, err := newFromEnvAndCLI(args)
+		require.NoError(t, err)
+		require.Equal(t, "https://example.com/a/b/", cfg.BaseURL)
 	})
 }

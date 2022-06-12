@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.NewFromEnv()
+	cfg, err := config.NewFromEnvAndCLI()
 	if err != nil {
 		log.Fatal(err)
 	}
