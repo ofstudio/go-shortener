@@ -9,7 +9,7 @@ import (
 )
 
 func TestShortenerService_validateURL(t *testing.T) {
-	cfg := &config.Config{URLMaxLen: 20, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 20, BaseURL: "https://example.com/"}
 	srv := NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("valid URL", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestShortenerService_validateURL(t *testing.T) {
 }
 
 func TestShortenerService_CreateShortURL(t *testing.T) {
-	cfg := &config.Config{URLMaxLen: 1024, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 1024, BaseURL: "https://example.com/"}
 	srv := NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful url short", func(t *testing.T) {
@@ -42,13 +42,13 @@ func TestShortenerService_CreateShortURL(t *testing.T) {
 		require.NoError(t, err)
 		u, err := url.Parse(got)
 		require.NoError(t, err)
-		require.Equal(t, cfg.PublicURL, u.Scheme+"://"+u.Host+"/")
+		require.Equal(t, cfg.BaseURL, u.Scheme+"://"+u.Host+"/")
 		require.Greater(t, len(u.Path), 1)
 	})
 }
 
 func TestShortenerService_GetLongURL(t *testing.T) {
-	cfg := &config.Config{URLMaxLen: 1024, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 1024, BaseURL: "https://example.com/"}
 	srv := NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful get long url", func(t *testing.T) {

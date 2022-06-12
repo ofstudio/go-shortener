@@ -13,7 +13,7 @@ import (
 )
 
 func TestAPIHandlers_CreateShortURL(t *testing.T) {
-	cfg := &config.Config{URLMaxLen: 20, PublicURL: "https://example.com/"}
+	cfg := &config.Config{URLMaxLen: 20, BaseURL: "https://example.com/"}
 	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
 
 	t.Run("successful", func(t *testing.T) {

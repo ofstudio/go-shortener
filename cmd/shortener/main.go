@@ -12,10 +12,11 @@ import (
 )
 
 func main() {
-	cfg := &config.Config{
-		URLMaxLen: 4096,
-		PublicURL: "http://localhost:8080/",
+	cfg, err := config.NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
 	}
+
 	db := storage.NewMemoryStorage()
 	srv := services.NewShortenerService(cfg, db)
 	appHandlers := handlers.NewShortenerHandlers(srv)
@@ -27,8 +28,10 @@ func main() {
 	r.Mount("/api/", apiHandlers.Routes())
 
 	server := &http.Server{
-		Addr:    "localhost:8080",
+		Addr:    cfg.ServerAddress,
 		Handler: r,
 	}
+
+	log.Printf("Starting shortener server at %s", cfg.ServerAddress)
 	log.Fatal(server.ListenAndServe())
 }
