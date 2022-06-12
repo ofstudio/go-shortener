@@ -105,7 +105,7 @@ func normalizeBaseURL(baseURL string) (string, error) {
 		return "", fmt.Errorf("invalid base URL")
 	}
 	if u.RawQuery != "" {
-		return "", fmt.Errorf("base URL must not contain query parameters: %s", u.RawQuery)
+		return "", fmt.Errorf("base URL must not contain query parameters")
 	}
 	if baseURL[len(baseURL)-1] != '/' {
 		baseURL += "/"
