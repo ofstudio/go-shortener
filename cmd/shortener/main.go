@@ -9,6 +9,9 @@ import (
 	"github.com/ofstudio/go-shortener/internal/storage"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -44,6 +47,16 @@ func main() {
 		Handler: r,
 	}
 
-	log.Printf("Starting shortener server at %s", cfg.ServerAddress)
+	// Горутина остановки сервера
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+		<-stop
+		log.Println("Stopping http server...")
+		_ = server.Close()
+	}()
+
+	// Запуск сервера
+	log.Printf("Starting http server at %s", cfg.ServerAddress)
 	log.Fatal(server.ListenAndServe())
 }
