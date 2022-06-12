@@ -9,7 +9,7 @@ import (
 func TestNewFromEnv(t *testing.T) {
 	t.Run("no env", func(t *testing.T) {
 		os.Clearenv()
-		cfg, err := NewFromEnv()
+		cfg, err := validate(fromEnv())
 		require.NoError(t, err)
 		require.Equal(t, DefaultConfig.BaseURL, cfg.BaseURL)
 		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
@@ -19,7 +19,7 @@ func TestNewFromEnv(t *testing.T) {
 		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "https://example.com/")
 		_ = os.Setenv("SERVER_ADDRESS", "10.10.0.1:3000")
-		cfg, err := NewFromEnv()
+		cfg, err := validate(fromEnv())
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/", cfg.BaseURL)
 		require.Equal(t, "10.10.0.1:3000", cfg.ServerAddress)
@@ -32,7 +32,7 @@ func TestNewFromEnv(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/", cfg.BaseURL)
 		_ = os.Setenv("BASE_URL", "https://example.com/a/b")
-		cfg, err = NewFromEnv()
+		cfg, err = validate(fromEnv())
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/a/b/", cfg.BaseURL)
 	})
@@ -40,14 +40,22 @@ func TestNewFromEnv(t *testing.T) {
 	t.Run("invalid BASE_URL", func(t *testing.T) {
 		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "invalid")
-		_, err := NewFromEnv()
+		_, err := validate(fromEnv())
 		require.Error(t, err)
 	})
 
 	t.Run("BASE_URL with query", func(t *testing.T) {
 		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "https://example.com/?foo=bar")
-		_, err := NewFromEnv()
+		_, err := validate(fromEnv())
+		require.Error(t, err)
+	})
+
+	// Неверный адрес сервера
+	t.Run("invalid ServerAddress", func(t *testing.T) {
+		os.Clearenv()
+		_ = os.Setenv("SERVER_ADDRESS", "invalid")
+		_, err := validate(fromEnv())
 		require.Error(t, err)
 	})
 }
@@ -57,7 +65,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 	t.Run("with CLI", func(t *testing.T) {
 		os.Clearenv()
 		args := []string{"-a", "127.0.0.0:8888", "-b", "https://example.com/", "-f", "/tmp/shortener.aof"}
-		cfg, err := newFromEnvAndCLI(args)
+		cfg, err := validate(fromEnvAndCLI(args))
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/", cfg.BaseURL)
 		require.Equal(t, "127.0.0.0:8888", cfg.ServerAddress)
@@ -68,7 +76,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 	t.Run("with CLI only BaseURL", func(t *testing.T) {
 		os.Clearenv()
 		args := []string{"-b", "https://example.com/"}
-		cfg, err := newFromEnvAndCLI(args)
+		cfg, err := validate(fromEnvAndCLI(args))
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/", cfg.BaseURL)
 		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
@@ -83,7 +91,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 		_ = os.Setenv("BASE_URL", "https://example.com/")
 		_ = os.Setenv("FILE_STORAGE_PATH", "/tmp/env.aof")
 		args := []string{"-f", "/tmp/cli.aof"}
-		cfg, err := newFromEnvAndCLI(args)
+		cfg, err := validate(fromEnvAndCLI(args))
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/", cfg.BaseURL)
 		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
@@ -94,16 +102,25 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 	t.Run("with invalid BaseURL", func(t *testing.T) {
 		os.Clearenv()
 		args := []string{"-b", "invalid_url"}
-		_, err := newFromEnvAndCLI(args)
+		_, err := validate(fromEnvAndCLI(args))
 		require.Error(t, err)
 	})
 
 	// Проверка на добавление в конец BaseURL слеша
-	t.Run("with slash in BaseURL", func(t *testing.T) {
+	t.Run("add slash in BaseURL", func(t *testing.T) {
 		os.Clearenv()
 		args := []string{"-b", "https://example.com/a/b"}
-		cfg, err := newFromEnvAndCLI(args)
+		cfg, err := validate(fromEnvAndCLI(args))
 		require.NoError(t, err)
 		require.Equal(t, "https://example.com/a/b/", cfg.BaseURL)
 	})
+
+	// Неверный адрес сервера
+	t.Run("invalid ServerAddress", func(t *testing.T) {
+		os.Clearenv()
+		args := []string{"-a", "invalid"}
+		_, err := validate(fromEnvAndCLI(args))
+		require.Error(t, err)
+	})
+
 }
