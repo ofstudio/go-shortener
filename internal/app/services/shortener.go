@@ -30,7 +30,7 @@ func (srv ShortenerService) CreateShortURL(longURL string) (string, error) {
 	}
 
 	// Возвращаем короткий URL
-	return srv.cfg.PublicURL + id, nil
+	return srv.cfg.BaseURL + id, nil
 }
 
 // GetLongURL - возвращает исходный URL по его id
