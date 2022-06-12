@@ -8,6 +8,7 @@ import (
 
 func TestNewFromEnv(t *testing.T) {
 	t.Run("no env", func(t *testing.T) {
+		os.Clearenv()
 		cfg, err := NewFromEnv()
 		require.NoError(t, err)
 		require.Equal(t, DefaultConfig.BaseURL, cfg.BaseURL)
@@ -15,6 +16,7 @@ func TestNewFromEnv(t *testing.T) {
 	})
 
 	t.Run("with env", func(t *testing.T) {
+		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "https://example.com/")
 		_ = os.Setenv("SERVER_ADDRESS", "10.10.0.1:3000")
 		cfg, err := NewFromEnv()
@@ -24,6 +26,7 @@ func TestNewFromEnv(t *testing.T) {
 	})
 
 	t.Run("BASE_URL without slash", func(t *testing.T) {
+		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "https://example.com")
 		cfg, err := NewFromEnv()
 		require.NoError(t, err)
@@ -35,12 +38,14 @@ func TestNewFromEnv(t *testing.T) {
 	})
 
 	t.Run("invalid BASE_URL", func(t *testing.T) {
+		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "invalid")
 		_, err := NewFromEnv()
 		require.Error(t, err)
 	})
 
 	t.Run("BASE_URL with query", func(t *testing.T) {
+		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "https://example.com/?foo=bar")
 		_, err := NewFromEnv()
 		require.Error(t, err)
@@ -50,6 +55,7 @@ func TestNewFromEnv(t *testing.T) {
 func TestNewFromEnvAndCLI(t *testing.T) {
 	// Все параметры заданы через коммандную строку
 	t.Run("with CLI", func(t *testing.T) {
+		os.Clearenv()
 		args := []string{"-a", "127.0.0.0:8888", "-b", "https://example.com/", "-f", "/tmp/shortener.aof"}
 		cfg, err := newFromEnvAndCLI(args)
 		require.NoError(t, err)
@@ -60,6 +66,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 
 	// Через командную строку задан только BaseURL, остальыне параметры используют значения по умолчанию
 	t.Run("with CLI only BaseURL", func(t *testing.T) {
+		os.Clearenv()
 		args := []string{"-b", "https://example.com/"}
 		cfg, err := newFromEnvAndCLI(args)
 		require.NoError(t, err)
@@ -72,6 +79,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 	// Через командную строку задан FileStoragePath.
 	// Остальыне параметры используют значения по умолчанию
 	t.Run("with env and CLI", func(t *testing.T) {
+		os.Clearenv()
 		_ = os.Setenv("BASE_URL", "https://example.com/")
 		_ = os.Setenv("FILE_STORAGE_PATH", "/tmp/env.aof")
 		args := []string{"-f", "/tmp/cli.aof"}
@@ -84,6 +92,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 
 	// Проверка на корректный BaseURL
 	t.Run("with invalid BaseURL", func(t *testing.T) {
+		os.Clearenv()
 		args := []string{"-b", "invalid_url"}
 		_, err := newFromEnvAndCLI(args)
 		require.Error(t, err)
@@ -91,6 +100,7 @@ func TestNewFromEnvAndCLI(t *testing.T) {
 
 	// Проверка на добавление в конец BaseURL слеша
 	t.Run("with slash in BaseURL", func(t *testing.T) {
+		os.Clearenv()
 		args := []string{"-b", "https://example.com/a/b"}
 		cfg, err := newFromEnvAndCLI(args)
 		require.NoError(t, err)
