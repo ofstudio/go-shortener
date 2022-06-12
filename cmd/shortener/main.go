@@ -17,7 +17,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db := storage.NewMemoryStorage()
+	var db storage.Interface
+	// Если задан cfg.FileStoragePath, то используем файловый сторадж, иначе храним в памяти
+	if cfg.FileStoragePath != "" {
+		log.Println("Using file storage:", cfg.FileStoragePath)
+		db, err = storage.NewAOFStorage(cfg.FileStoragePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Println("Using in-memory storage")
+		db = storage.NewMemoryStorage()
+	}
+
 	srv := services.NewShortenerService(cfg, db)
 	appHandlers := handlers.NewShortenerHandlers(srv)
 	apiHandlers := handlers.NewAPIHandlers(srv)
