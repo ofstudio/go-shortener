@@ -1,11 +1,13 @@
 package main
 
 import (
+	"compress/gzip"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/handlers"
+	"github.com/ofstudio/go-shortener/pkg/middleware"
 	"github.com/ofstudio/go-shortener/pkg/storage"
 	"log"
 	"net/http"
@@ -15,15 +17,17 @@ import (
 )
 
 func main() {
+	// Считываем конфигурацию.
 	cfg, err := config.NewFromEnvAndCLI()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Создаём хранилище.
+	// Если задан cfg.FileStoragePath, то используем файловый сторадж, иначе храним в памяти.
 	var db storage.Interface
-	// Если задан cfg.FileStoragePath, то используем файловый сторадж, иначе храним в памяти
 	if cfg.FileStoragePath != "" {
-		log.Println("Using file storage:", cfg.FileStoragePath)
+		log.Println("Using append-only file storage:", cfg.FileStoragePath)
 		db, err = storage.NewAOFStorage(cfg.FileStoragePath)
 		if err != nil {
 			log.Fatal(err)
@@ -33,21 +37,37 @@ func main() {
 		db = storage.NewMemoryStorage()
 	}
 
+	// Создаём сервис и обработчики запросов.
 	srv := services.NewShortenerService(cfg, db)
 	appHandlers := handlers.NewShortenerHandlers(srv)
 	apiHandlers := handlers.NewAPIHandlers(srv)
 
+	// Создаём маршрутизатор.
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(chiMiddleware.Logger)
+
+	// Middleware для декомпрессии запросов.
+	r.Use(middleware.Decompressor)
+
+	// Middleware для компрессии ответов.
+	// Параметр minSize рекомендуется равным middleware.MTUSize.
+	// Значение 0 означает сжатие ответов любой длины и используется в целях демонстрации.
+	r.Use(middleware.NewCompressor(0, gzip.BestSpeed).
+		AddType("application/json").
+		AddType("text/plain").
+		AddType("text/html").Handler)
+
+	// Добавляем маршруты для обработки запросов.
 	r.Mount("/", appHandlers.Routes())
 	r.Mount("/api/", apiHandlers.Routes())
 
+	// Создаём сервер.
 	server := &http.Server{
 		Addr:    cfg.ServerAddress,
 		Handler: r,
 	}
 
-	// Горутина остановки сервера
+	// Горутина для graceful-остановки сервера.
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
@@ -56,7 +76,7 @@ func main() {
 		_ = server.Close()
 	}()
 
-	// Запуск сервера
+	// Запускаем сервер.
 	log.Printf("Starting http server at %s", cfg.ServerAddress)
 	log.Fatal(server.ListenAndServe())
 }
