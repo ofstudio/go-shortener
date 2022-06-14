@@ -2,7 +2,7 @@ package services
 
 import (
 	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/storage"
+	"github.com/ofstudio/go-shortener/pkg/storage"
 	"github.com/stretchr/testify/require"
 	"net/url"
 	"testing"
