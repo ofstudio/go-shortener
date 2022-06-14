@@ -17,13 +17,17 @@ type compressState int8
 
 const (
 	stateUnset    compressState = iota // Решение о сжатии еще принято: не определен тип и/или размер данных (начальное состояние).
-	stateCompress                      // Данные необходимо сжимать.
+	stateCompress                      // Данные нужно сжимать.
 	statePass                          // Данные сжимать не нужно.
 )
 
+const NoStatusCode = -1
+
 // CompressedWriter - компрессор для gzip-сжатия данных.
-// Если совокупный размер полученных данных не превышает минимальный размер minSize,
-// то данные сжиматься не будут.
+// Данные будут сжиматься при соблюдении следующих условий:
+//    1. Размер данных для сжатия больше или равен minSize.
+//    2. Тип данных будет включен в список allowedTypes.
+// Если хотя бы одно из условий не выполняется, то данные не будут сжаты.
 type CompressedWriter struct {
 	// Состояние компрессора.
 	state compressState
@@ -32,7 +36,7 @@ type CompressedWriter struct {
 	http.ResponseWriter
 
 	// Поток для сжатия данных. При создании объекта устанавливается в nil.
-	// Инициализируется только если необходимо сжимать данные.
+	// Инициализируется только если нужно сжимать данные.
 	compWriter io.WriteCloser
 
 	// Минимальный размер данных для сжатия.
@@ -40,7 +44,7 @@ type CompressedWriter struct {
 	// MTUSize - оптимизированное значение под размер сетевого пакета.
 	minSize int64
 
-	// Буфер размера minSize для накопления данных, перед принятем решения о сжатии.
+	// Буфер размера minSize для накопления данных, перед принятием решения о сжатии.
 	buf []byte
 
 	// Кол-во данных в буфере.
@@ -54,6 +58,14 @@ type CompressedWriter struct {
 
 	// Уровень сжатия данных
 	level int
+
+	// HTTP-код ответа, полученный от WriteHeader.
+	// Если WriteHeader не вызывался, имеет значение NoStatusCode.
+	// До момента пока не будет определено, нужно сжимать данные или нет,
+	// мы не отправляем код в http.ResponseWriter, а храним его в этом поле.
+	// Перед первой отправкой данных в http.ResponseWriter или в compWriter,
+	// необходимо отправить код с помощью метода resumeWriteHeader.
+	statusCode int
 }
 
 // NewCompressedWriter - создает новый поток для сжатия данных.
@@ -73,6 +85,7 @@ func NewCompressedWriter(responseWriter http.ResponseWriter, minSize int64, leve
 		allowedTypes:   allowedTypes,
 		typeChecked:    false,
 		level:          level,
+		statusCode:     NoStatusCode,
 	}
 }
 
@@ -84,6 +97,7 @@ func (w *CompressedWriter) Write(p []byte) (int, error) {
 		// Если тип данных не разрешен для сжатия, то устанавливаем состояние компрессора не сжимать данные
 		if !w.typeCheck(w.ResponseWriter.Header().Get("Content-Type")) {
 			w.state = statePass
+			w.resumeWriteHeader()
 		}
 	}
 
@@ -102,10 +116,10 @@ func (w *CompressedWriter) Write(p []byte) (int, error) {
 
 	// Если ранее полученные данные в буфере + новые данные
 	// превышают минимальный размер, то:
-	//   - создаем поток для сжатия данных,
-	//   - устанавливаем состояние "Данные нужно сжимать",
-	//   - устанавливаем заголовки ответа,
-	//   - отправляем в него ранее полученные данные из буфера + новые данные.
+	//   - создаем поток для сжатия данных
+	//   - устанавливаем состояние "Данные нужно сжимать"
+	//   - устанавливаем заголовки ответа
+	//   - отправляем в него ранее полученные данные из буфера + новые данные
 	case w.buffered+int64(len(p)) > w.minSize:
 		var err error
 		w.compWriter, err = gzip.NewWriterLevel(w.ResponseWriter, w.level)
@@ -115,6 +129,7 @@ func (w *CompressedWriter) Write(p []byte) (int, error) {
 		w.state = stateCompress
 		w.ResponseWriter.Header().Set("Content-Encoding", "gzip")
 		w.ResponseWriter.Header().Set("Vary", "Accept-Encoding")
+		w.resumeWriteHeader()
 		return w.compWriter.Write(append(w.buf[:w.buffered], p...))
 
 	// Если уже имеющиеся данные в буфере + новые данные
@@ -124,6 +139,18 @@ func (w *CompressedWriter) Write(p []byte) (int, error) {
 		copy(w.buf[w.buffered:], p)
 		w.buffered += int64(len(p))
 		return len(p), nil
+	}
+}
+
+// WriteHeader - отправляет заголовок HTTP-ответа с соответствующим statusCode
+// До момента, пока не будет определено, будут сжаты данные или нет,
+// мы не отправляем этот код в поток ResponseWriter.
+func (w *CompressedWriter) WriteHeader(statusCode int) {
+	switch w.state {
+	case stateUnset:
+		w.statusCode = statusCode
+	default:
+		w.ResponseWriter.WriteHeader(statusCode)
 	}
 }
 
@@ -140,6 +167,7 @@ func (w *CompressedWriter) Close() error {
 	// Если признак решения о сжатии не установлен и есть данные в буфере,
 	// то отправляем их в поток для несжатых данных.
 	case w.buffered > 0:
+		w.resumeWriteHeader()
 		_, err := w.ResponseWriter.Write(w.buf[:w.buffered])
 		return err
 
@@ -158,4 +186,15 @@ func (w *CompressedWriter) typeCheck(contentType string) bool {
 	}
 	_, ok := w.allowedTypes[contentType]
 	return ok
+}
+
+// resumeWriteHeader - возобновляет отправку HTTP-заголовка,
+// в случае если он был установлен раннее с помощью WriteHeader.
+// Метод необходимо вызывать перед первой отправкой данных в http.ResponseWriter или compWriter.
+func (w *CompressedWriter) resumeWriteHeader() {
+	if w.statusCode != NoStatusCode {
+		w.ResponseWriter.WriteHeader(w.statusCode)
+		// Исключаем повторную отправку.
+		w.statusCode = NoStatusCode
+	}
 }
