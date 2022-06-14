@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// Decompressor - middleware, который распаковывает звпросы с Content-Encoding: gzip.
-// Заголовок Content-Length удаляется, тк его значение после распковки не известно.
+// Decompressor - middleware, который распаковывает запросы с Content-Encoding: gzip.
+// Заголовок Content-Length удаляется, тк его значение после распаковки не известно.
 func Decompressor(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Если Content-Encoding не gzip - передаём запрос дальше
