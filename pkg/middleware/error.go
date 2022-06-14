@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-// respondWithError - возвращает клиенту http-ошибку, соотвествующую ошибке middleware
+// respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке middleware
 func respondWithError(w http.ResponseWriter, _ error) {
 	switch {
 	// tbd...

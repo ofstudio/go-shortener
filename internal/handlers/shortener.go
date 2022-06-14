@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// ShortenerHandlers - HTTP хандлеры для сервиса services.ShortenerService
+// ShortenerHandlers - HTTP-хендлеры для сервиса services.ShortenerService
 type ShortenerHandlers struct {
 	srv *services.ShortenerService
 }
