@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
@@ -92,9 +93,13 @@ func testDecompressorRequest(t *testing.T, ts *httptest.Server, reqBody []byte, 
 // Параметры:
 //    acceptCompressed - принимать или нет сжатые запросы
 func testDecompressorServer(t *testing.T, acceptCompressed bool) *httptest.Server {
-	mux := http.NewServeMux()
-	// Echo handler
-	h := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r := chi.NewRouter()
+	if acceptCompressed {
+		r.Use(Decompressor)
+	}
+
+	// Echo-хендлер
+	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
 		defer func(Body io.ReadCloser) {
@@ -103,13 +108,9 @@ func testDecompressorServer(t *testing.T, acceptCompressed bool) *httptest.Serve
 		}(r.Body)
 		_, err = w.Write(body)
 		require.NoError(t, err)
-	}))
+	})
 
-	if acceptCompressed {
-		h = Decompressor(h)
-	}
-	mux.Handle("/", h)
-	return httptest.NewServer(mux)
+	return httptest.NewServer(r)
 }
 
 // testGzipDecompress - декомпрессирует данные

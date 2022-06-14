@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
@@ -112,9 +113,16 @@ func testCompressorRequest(t *testing.T, ts *httptest.Server, contentType string
 // 	- минимальный размер для сжатия
 //  - допустимые типы для сжатия
 func testCompressorServer(t *testing.T, minSize int64, types ...string) *httptest.Server {
-	mux := http.NewServeMux()
-	// Echo handler
-	h := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	compressor := NewCompressor(minSize, gzip.BestSpeed)
+	for _, ct := range types {
+		compressor.AddType(ct)
+	}
+
+	r := chi.NewRouter()
+	r.Use(compressor.Handler)
+
+	// Echo-хендлер
+	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 		body, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -124,13 +132,7 @@ func testCompressorServer(t *testing.T, minSize int64, types ...string) *httptes
 		}(r.Body)
 		_, err = w.Write(body)
 		require.NoError(t, err)
-	}))
+	})
 
-	compressor := NewCompressor(minSize, gzip.BestSpeed)
-	for _, ct := range types {
-		compressor.AddType(ct)
-	}
-
-	mux.Handle("/", compressor.Handler(h))
-	return httptest.NewServer(mux)
+	return httptest.NewServer(r)
 }
