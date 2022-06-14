@@ -52,10 +52,7 @@ func main() {
 	// Middleware для компрессии ответов.
 	// Параметр minSize рекомендуется равным middleware.MTUSize.
 	// Значение 0 означает сжатие ответов любой длины и используется в целях демонстрации.
-	r.Use(middleware.NewCompressor(0, gzip.BestSpeed).
-		AddType("application/json").
-		AddType("text/plain").
-		AddType("text/html").Handler)
+	r.Use(middleware.NewCompressor(0, gzip.BestSpeed).AddType("application/json").Handler)
 
 	// Добавляем маршруты для обработки запросов.
 	r.Mount("/", appHandlers.Routes())
