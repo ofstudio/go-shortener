@@ -78,5 +78,10 @@ func main() {
 
 	// Запускаем сервер.
 	log.Printf("Starting http server at %s", cfg.ServerAddress)
-	log.Fatal(server.ListenAndServe())
+	switch server.ListenAndServe() {
+	case http.ErrServerClosed:
+		log.Println("Server stopped. Exiting...")
+	default:
+		log.Fatal(err)
+	}
 }
