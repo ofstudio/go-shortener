@@ -1,7 +1,6 @@
 package main
 
 import (
-	"compress/gzip"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/ofstudio/go-shortener/internal/app/config"
@@ -52,7 +51,7 @@ func main() {
 	// Middleware для компрессии ответов.
 	// Параметр minSize рекомендуется равным middleware.MTUSize.
 	// Значение 0 означает сжатие ответов любой длины и используется в целях демонстрации.
-	r.Use(middleware.NewCompressor(0, gzip.BestSpeed).AddType("application/json").Handler)
+	//r.Use(middleware.NewCompressor(0, gzip.BestSpeed).AddType("application/json").Handler)
 
 	// Добавляем маршруты для обработки запросов.
 	r.Mount("/", appHandlers.Routes())
