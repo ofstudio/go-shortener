@@ -6,7 +6,7 @@ import (
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/handlers"
-	"github.com/ofstudio/go-shortener/internal/storage"
+	"github.com/ofstudio/go-shortener/pkg/storage"
 	"log"
 	"net/http"
 	"os"
