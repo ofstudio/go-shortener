@@ -29,15 +29,14 @@ func NewCompressor(minSize int64, level int) *Compressor {
 // Handler - возвращает middleware для сжатия ответов.
 func (c *Compressor) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Если не выполняются условия для сжатия ответа, передаём запрос дальше
-		if !c.canCompress(r) {
+		// Если в Accept-Encoding не указан gzip, то не сжимаем данные
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		// Создаём CompressedWriter
-		cw := NewCompressedWriter(w, c.minSize, c.level)
-
+		cw := NewCompressedWriter(w, c.minSize, c.level, c.allowedTypes)
 		// Необходимо закрыть компрессор после завершения обработки запроса,
 		// тк в его буфере могут быть неотправленные данные.
 		defer func() {
@@ -55,22 +54,4 @@ func (c *Compressor) Handler(next http.Handler) http.Handler {
 func (c *Compressor) AddType(contentType string) *Compressor {
 	c.allowedTypes[contentType] = struct{}{}
 	return c
-}
-
-// canCompress - проверяет, может ли ответ сжиматься.
-// Проверется заголовок Accept-Encoding на наличие gzip
-// и Content-Type на список разрешенных для сжатия типов.
-func (c *Compressor) canCompress(r *http.Request) bool {
-	return strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") &&
-		c.isAllowedType(r.Header.Get("Content-Type"))
-}
-
-// isAllowedType - проверяет, может ли сжиматься данный Content-Type.
-func (c *Compressor) isAllowedType(contentType string) bool {
-	// Если не задано ни одного типа, сжимаем по умолчанию все типы.
-	if len(c.allowedTypes) == 0 {
-		return true
-	}
-	_, ok := c.allowedTypes[contentType]
-	return ok
 }
