@@ -8,7 +8,7 @@ import (
 
 var ErrValidation = errors.New("validation error")
 
-// respondWithError - возвращает клиенту http-ошибку, соотвествующую ошибке сервиса
+// respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке сервиса
 func respondWithError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, services.ErrShortURLNotFound):

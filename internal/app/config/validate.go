@@ -36,7 +36,7 @@ func normalizeBaseURL(baseURL string) string {
 }
 
 // validateBaseURL - проверяет базовый адрес сокращённого URL.
-// Возвращает ошибку если URL содежит параметры параметры, а также если URL пустой или невалидный.
+// Возвращает ошибку если URL содержит параметры, а также если URL пустой или невалидный.
 func validateBaseURL(baseURL string) error {
 	if baseURL == "" {
 		return fmt.Errorf("empty base URL")

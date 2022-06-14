@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-// APIHandlers - HTTP хандлеры JSON API для сервиса services.ShortenerService
+// APIHandlers - HTTP-хендлеры JSON API для сервиса services.ShortenerService
 type APIHandlers struct {
 	srv *services.ShortenerService
 }

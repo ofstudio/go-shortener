@@ -67,7 +67,7 @@ func TestAOFStorage(t *testing.T) {
 		require.Equal(t, ErrNotFound, err)
 	})
 
-	// Отсуствуют необходимые поля в JSON-строке
+	// Отсутствуют необходимые поля в JSON-строке
 	t.Run("json string fields mismatch", func(t *testing.T) {
 		filePath := dir + "/mismatch.aof"
 		f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

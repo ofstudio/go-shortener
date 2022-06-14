@@ -19,7 +19,7 @@ func init() {
 //   - 4 байта: случайное число
 func Generate() string {
 	// Текущее Unix-время в секундах
-	// Предсавление Unix-секунд в uint32 обеспечивает уникальные значения
+	// Представление Unix-секунд в uint32 обеспечивает уникальные значения
 	// в течение 136 лет: до 17 фев 2106
 	// https://en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
 	timePart := uint32(time.Now().Unix())
