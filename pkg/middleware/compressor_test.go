@@ -18,14 +18,17 @@ func TestCompressor(t *testing.T) {
 	// Заголовок ответа Content-Encoding установлен
 	// Декомпрессированный body ответа совпадает c запросом
 	t.Run("compressed response", func(t *testing.T) {
-		ts := testCompressorServer(t, 0, "text/plain")
+		ts := testCompressorServer(t, 0, "application/json")
 		defer ts.Close()
-		res, resBody := testCompressorRequest(t, ts, "text/plain", []byte("test"), true)
+		res, resBody := testCompressorRequest(t, ts, "application/json", []byte(`{"a":1}`), true)
 		// statictest_workaround
 		defer res.Body.Close()
+		require.Equal(t, http.StatusCreated, res.StatusCode)
+		require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 		require.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
+		require.Equal(t, "Accept-Encoding", res.Header.Get("Vary"))
 		require.Equal(t, fmt.Sprintf("%d", len(resBody)), res.Header.Get("Content-Length"))
-		require.Equal(t, "test", string(testGzipDecompress(t, resBody)))
+		require.Equal(t, `{"a":1}`, string(testGzipDecompress(t, resBody)))
 	})
 
 	// Сервер сжимает любые типы, подходит размер и заголовок запроса
@@ -34,11 +37,15 @@ func TestCompressor(t *testing.T) {
 	t.Run("compressed response - server accept any content type", func(t *testing.T) {
 		ts := testCompressorServer(t, 0)
 		defer ts.Close()
-		res, resBody := testCompressorRequest(t, ts, "some/type", []byte("test"), true)
+		res, resBody := testCompressorRequest(t, ts, "application/json", []byte(`{"a":1}`), true)
 		// statictest_workaround
 		defer res.Body.Close()
+		require.Equal(t, http.StatusCreated, res.StatusCode)
+		require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 		require.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
-		require.Equal(t, "test", string(testGzipDecompress(t, resBody)))
+		require.Equal(t, "Accept-Encoding", res.Header.Get("Vary"))
+		require.Equal(t, fmt.Sprintf("%d", len(resBody)), res.Header.Get("Content-Length"))
+		require.Equal(t, `{"a":1}`, string(testGzipDecompress(t, resBody)))
 	})
 
 	// Подходит тип, размер, не подходит заголовок запроса
@@ -50,6 +57,8 @@ func TestCompressor(t *testing.T) {
 		res, resBody := testCompressorRequest(t, ts, "text/plain", []byte("test"), false)
 		// statictest_workaround
 		defer res.Body.Close()
+		require.Equal(t, http.StatusCreated, res.StatusCode)
+		require.Equal(t, "text/plain", res.Header.Get("Content-Type"))
 		require.Equal(t, "", res.Header.Get("Content-Encoding"))
 		require.Equal(t, "test", string(resBody))
 	})
@@ -63,6 +72,8 @@ func TestCompressor(t *testing.T) {
 		res, resBody := testCompressorRequest(t, ts, "text/html", []byte("test"), true)
 		// statictest_workaround
 		defer res.Body.Close()
+		require.Equal(t, http.StatusCreated, res.StatusCode)
+		require.Equal(t, "text/html", res.Header.Get("Content-Type"))
 		require.Equal(t, "", res.Header.Get("Content-Encoding"))
 		require.Equal(t, "test", string(resBody))
 	})
@@ -73,9 +84,11 @@ func TestCompressor(t *testing.T) {
 	t.Run("uncompressed response - body is too short", func(t *testing.T) {
 		ts := testCompressorServer(t, MTUSize, "text/plain")
 		defer ts.Close()
-		res, resBody := testCompressorRequest(t, ts, "text/plain", []byte("test"), true)
+		res, resBody := testCompressorRequest(t, ts, "text/css", []byte("test"), true)
 		// statictest_workaround
 		defer res.Body.Close()
+		require.Equal(t, http.StatusCreated, res.StatusCode)
+		require.Equal(t, "text/css", res.Header.Get("Content-Type"))
 		require.Equal(t, "", res.Header.Get("Content-Encoding"))
 		require.Equal(t, "test", string(resBody))
 	})
@@ -123,6 +136,7 @@ func testCompressorServer(t *testing.T, minSize int64, types ...string) *httptes
 
 	// Echo-хендлер
 	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 		body, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
