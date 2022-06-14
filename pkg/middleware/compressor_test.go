@@ -20,6 +20,8 @@ func TestCompressor(t *testing.T) {
 		ts := testCompressorServer(t, 0, "text/plain")
 		defer ts.Close()
 		res, resBody := testCompressorRequest(t, ts, "text/plain", []byte("test"), true)
+		// statictest_workaround
+		defer res.Body.Close()
 		require.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
 		require.Equal(t, fmt.Sprintf("%d", len(resBody)), res.Header.Get("Content-Length"))
 		require.Equal(t, "test", string(testGzipDecompress(t, resBody)))
@@ -113,6 +115,7 @@ func testCompressorServer(t *testing.T, minSize int64, types ...string) *httptes
 	mux := http.NewServeMux()
 	// Echo handler
 	h := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 		body, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
 		defer func(Body io.ReadCloser) {
