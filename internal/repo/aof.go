@@ -69,14 +69,14 @@ func (r *AOFRepo) UserCreate(user *models.User) error {
 // ShortURLCreate - создает новую короткую ссылку в репозитории.
 // Если короткая ссылка с таким id уже существует, возвращает ErrDuplicate.
 // При ошибке записи в файл, возвращает ErrAOFWrite.
-func (r *AOFRepo) ShortURLCreate(shortUrl *models.ShortURL) error {
+func (r *AOFRepo) ShortURLCreate(shortURL *models.ShortURL) error {
 	r.Lock()
 	defer r.Unlock()
-	if err := r.MemoryRepo.ShortURLCreate(shortUrl); err != nil {
+	if err := r.MemoryRepo.ShortURLCreate(shortURL); err != nil {
 		return err
 	}
-	if err := r.encoder.Encode(aofRecord{ShortURLCreate: shortUrl}); err != nil {
-		r.MemoryRepo.shortURLDelete(shortUrl.ID)
+	if err := r.encoder.Encode(aofRecord{ShortURLCreate: shortURL}); err != nil {
+		r.MemoryRepo.shortURLDelete(shortURL.ID)
 		return ErrAOFWrite
 	}
 	return nil
