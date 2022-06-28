@@ -44,11 +44,11 @@ var _ = Describe("API POST /shorten ", func() {
 			resBody, err := ioutil.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
-			resJson := &struct {
+			resJSON := &struct {
 				Result string `json:"result"`
 			}{}
-			Expect(json.Unmarshal(resBody, resJson)).Should(Succeed())
-			Expect(resJson.Result).ShouldNot(BeEmpty())
+			Expect(json.Unmarshal(resBody, resJSON)).Should(Succeed())
+			Expect(resJSON.Result).ShouldNot(BeEmpty())
 		})
 	})
 	When("too long url sent", func() {
@@ -134,16 +134,16 @@ var _ = Describe("API GET /user/urls", func() {
 			resBody, err := ioutil.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
-			var resJson []struct {
+			var resJSON []struct {
 				ShortURL    string `json:"short_url"`
 				OriginalURL string `json:"original_url"`
 			}
-			Expect(json.Unmarshal(resBody, &resJson)).Should(Succeed())
-			Expect(resJson).Should(HaveLen(2))
-			Expect(resJson[0].ShortURL).ShouldNot(BeEmpty())
-			Expect(resJson[0].OriginalURL).Should(Equal("https://www.google.com"))
-			Expect(resJson[1].ShortURL).ShouldNot(BeEmpty())
-			Expect(resJson[1].OriginalURL).Should(Equal("https://www.apple.com"))
+			Expect(json.Unmarshal(resBody, &resJSON)).Should(Succeed())
+			Expect(resJSON).Should(HaveLen(2))
+			Expect(resJSON[0].ShortURL).ShouldNot(BeEmpty())
+			Expect(resJSON[0].OriginalURL).Should(Equal("https://www.google.com"))
+			Expect(resJSON[1].ShortURL).ShouldNot(BeEmpty())
+			Expect(resJSON[1].OriginalURL).Should(Equal("https://www.apple.com"))
 		})
 	})
 
@@ -154,4 +154,3 @@ var _ = Describe("API GET /user/urls", func() {
 		})
 	})
 })
-
