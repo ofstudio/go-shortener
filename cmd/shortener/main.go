@@ -22,13 +22,7 @@ func main() {
 	// Создаём репозиторий и сервисы.
 	repository := repo.Fabric(cfg)
 	defer repository.Close()
-
-	// Создаём сервисы
-	srv := &services.Services{
-		ShortURLService: services.NewShortURLService(cfg, repository),
-		HealthService:   services.NewHealthService(nil),
-		UserService:     services.NewUserService(cfg, repository),
-	}
+	srv := services.Fabric(cfg, repository)
 
 	// Создаём маршрутизатор
 	r := chi.NewRouter()

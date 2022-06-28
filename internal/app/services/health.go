@@ -1,20 +1,27 @@
 package services
 
-import "database/sql"
+import (
+	"github.com/ofstudio/go-shortener/internal/repo"
+)
 
 // HealthService - healthcheck-сервис приложения
 type HealthService struct {
-	db *sql.DB
+	repo repo.Repo
 }
 
-func NewHealthService(db *sql.DB) *HealthService {
-	return &HealthService{db: db}
+func NewHealthService(repo repo.Repo) *HealthService {
+	return &HealthService{repo: repo}
 }
 
 // Check - выполняет проверку приложения
 func (s *HealthService) Check() error {
-	if s.db == nil {
-		return nil
+	// Если используется SQL-репозиторий, то проверяем подключение к БД.
+	sqlRepo, ok := s.repo.(*repo.SQLRepo)
+	if ok {
+		db := sqlRepo.DB()
+		if db != nil {
+			return db.Ping()
+		}
 	}
-	return s.db.Ping()
+	return nil
 }

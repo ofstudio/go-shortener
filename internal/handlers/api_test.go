@@ -20,11 +20,7 @@ var _ = Describe("API POST /shorten ", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	srv := &services.Services{
-		ShortURLService: services.NewShortURLService(cfg, repository),
-		HealthService:   nil,
-		UserService:     services.NewUserService(cfg, repository),
-	}
+	srv := services.Fabric(cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -103,11 +99,7 @@ var _ = Describe("API GET /user/urls", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	srv := &services.Services{
-		ShortURLService: services.NewShortURLService(cfg, repository),
-		HealthService:   nil,
-		UserService:     services.NewUserService(cfg, repository),
-	}
+	srv := services.Fabric(cfg, repository)
 	var cookie *http.Cookie
 
 	BeforeEach(func() {

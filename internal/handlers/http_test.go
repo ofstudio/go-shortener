@@ -20,11 +20,7 @@ var _ = Describe("HTTP Handlers", func() {
 	server := &ghttp.Server{}
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	srv := &services.Services{
-		ShortURLService: services.NewShortURLService(cfg, repository),
-		HealthService:   nil,
-		UserService:     services.NewUserService(cfg, repository),
-	}
+	srv := services.Fabric(cfg, repository)
 	shortURLPath := ""
 
 	BeforeEach(func() {
