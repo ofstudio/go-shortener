@@ -75,7 +75,7 @@ func (suite *aofRepoSuite) TestAOFRepo_UserCreate() {
 	suite.NoError(repo2.Close())
 	suite.Equal(ErrAOFWrite, repo2.UserCreate(&models.User{ID: 1000}))
 	// Проверяем, что пользователь не записан в репозиторий
-	user, err = repo2.UserGetByID(1000)
+	_, err = repo2.UserGetByID(1000)
 	suite.Equal(ErrNotFound, err)
 }
 
@@ -99,7 +99,7 @@ func (suite *aofRepoSuite) TestAOFRepo_ShortURLCreate() {
 	suite.NoError(repo2.Close())
 	suite.Equal(ErrAOFWrite, repo2.ShortURLCreate(&models.ShortURL{ID: "xyz123", OriginalURL: "https://www.ya.ru", UserID: 1000}))
 	// Проверяем, что сокращенная ссылка не записана в репозиторий
-	shortURL, err = repo2.ShortURLGetByID("xyz123")
+	_, err = repo2.ShortURLGetByID("xyz123")
 	suite.Equal(ErrNotFound, err)
 	// Проверяем, что сокращенная ссылка также не доступна в списке ссылок пользователя
 	userURLs, err := repo2.ShortURLGetByUserID(1000)
