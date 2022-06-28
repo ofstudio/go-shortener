@@ -128,13 +128,15 @@ func (r *MemoryRepo) shortURLDelete(id string) {
 //    - Если id больше next, то next будет установлен в id + 1.
 //    - Если id = 0, то id будет установлен в next, а next увеличится на 1.
 //    - Если id меньше next, то id и next не изменяются.
-//    - Ситуации с id < 0 или next <= 0 не обрабатываются.
+//    - Ситуации с next == 0 не обрабатываются.
 //
 func autoIncrement(id, next *uint) {
-	if id == nil || next == nil || *id < 0 || *next <= 0 {
-		return
-	}
+
 	switch {
+	case id == nil || next == nil:
+		return
+	case *next == 0:
+		return
 	case *id >= *next:
 		*next = *id + 1
 	case *id == 0:
