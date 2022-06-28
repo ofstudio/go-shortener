@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
@@ -19,9 +20,9 @@ func NewShortURLService(cfg *config.Config, repo repo.Repo) *ShortURLService {
 }
 
 // Create - создает и возвращает ShortURL
-func (s ShortURLService) Create(userID uint, OriginalURL string) (*models.ShortURL, error) {
+func (s ShortURLService) Create(ctx context.Context, userID uint, OriginalURL string) (*models.ShortURL, error) {
 	// Проверяем, существует ли такой пользователь
-	_, err := s.repo.UserGetByID(userID)
+	_, err := s.repo.UserGetByID(ctx, userID)
 	if err == repo.ErrNotFound {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -39,7 +40,7 @@ func (s ShortURLService) Create(userID uint, OriginalURL string) (*models.ShortU
 		OriginalURL: OriginalURL,
 		UserID:      userID,
 	}
-	if err = s.repo.ShortURLCreate(shortURL); err != nil {
+	if err = s.repo.ShortURLCreate(ctx, shortURL); err != nil {
 		return nil, ErrInternal
 	}
 
@@ -48,8 +49,8 @@ func (s ShortURLService) Create(userID uint, OriginalURL string) (*models.ShortU
 }
 
 // GetByID - возвращает ShortURL по его id
-func (s ShortURLService) GetByID(id string) (*models.ShortURL, error) {
-	shortURL, err := s.repo.ShortURLGetByID(id)
+func (s ShortURLService) GetByID(ctx context.Context, id string) (*models.ShortURL, error) {
+	shortURL, err := s.repo.ShortURLGetByID(ctx, id)
 	if err == repo.ErrNotFound {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -59,8 +60,8 @@ func (s ShortURLService) GetByID(id string) (*models.ShortURL, error) {
 }
 
 // GetByUserID - возвращает все ShortURL пользователя
-func (s ShortURLService) GetByUserID(id uint) ([]models.ShortURL, error) {
-	shortURLs, err := s.repo.ShortURLGetByUserID(id)
+func (s ShortURLService) GetByUserID(ctx context.Context, id uint) ([]models.ShortURL, error) {
+	shortURLs, err := s.repo.ShortURLGetByUserID(ctx, id)
 	if err == repo.ErrNotFound {
 		return nil, ErrNotFound
 	} else if err != nil {

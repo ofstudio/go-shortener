@@ -27,6 +27,21 @@ func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	return &SQLRepo{db: db, MemoryRepo: NewMemoryRepo()}, err
 }
 
+func (r *SQLRepo) migrate() error {
+	_, err := r.db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY
+		);
+		CREATE TABLE IF NOT EXISTS short_urls (
+			id VARCHAR(255) PRIMARY KEY,
+			original_url VARCHAR(4096) NOT NULL,
+			user_id INTEGER NOT NULL,
+			FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+		);
+	`)
+	return err
+}
+
 func (r *SQLRepo) DB() *sql.DB {
 	return r.db
 }

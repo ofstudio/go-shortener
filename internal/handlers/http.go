@@ -30,7 +30,7 @@ func (h HTTPHandlers) Routes() chi.Router {
 // в HTTP-заголовке Location.
 func (h HTTPHandlers) shortURLRedirectToOriginal(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	shortURL, err := h.srv.ShortURLService.GetByID(id)
+	shortURL, err := h.srv.ShortURLService.GetByID(r.Context(), id)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -58,7 +58,7 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := h.srv.ShortURLService.Create(userID, string(b))
+	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, string(b))
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -69,8 +69,8 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(h.srv.ShortURLService.Resolve(shortURL.ID)))
 }
 
-func (h *HTTPHandlers) ping(w http.ResponseWriter, _ *http.Request) {
-	err := h.srv.HealthService.Check()
+func (h *HTTPHandlers) ping(w http.ResponseWriter, r *http.Request) {
+	err := h.srv.HealthService.Check(r.Context())
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"io"
@@ -53,10 +54,10 @@ func NewAOFRepo(filePath string) (*AOFRepo, error) {
 // UserCreate - добавляет нового пользователя в репозиторий.
 // Если пользователь с таким id уже существует, возвращает ErrDuplicate.
 // При ошибке записи в файл, возвращает ErrAOFWrite.
-func (r *AOFRepo) UserCreate(user *models.User) error {
+func (r *AOFRepo) UserCreate(ctx context.Context, user *models.User) error {
 	r.Lock()
 	defer r.Unlock()
-	if err := r.MemoryRepo.UserCreate(user); err != nil {
+	if err := r.MemoryRepo.UserCreate(ctx, user); err != nil {
 		return err
 	}
 	if err := r.encoder.Encode(aofRecord{UserCreate: user}); err != nil {
@@ -69,10 +70,10 @@ func (r *AOFRepo) UserCreate(user *models.User) error {
 // ShortURLCreate - создает новую короткую ссылку в репозитории.
 // Если короткая ссылка с таким id уже существует, возвращает ErrDuplicate.
 // При ошибке записи в файл, возвращает ErrAOFWrite.
-func (r *AOFRepo) ShortURLCreate(shortURL *models.ShortURL) error {
+func (r *AOFRepo) ShortURLCreate(ctx context.Context, shortURL *models.ShortURL) error {
 	r.Lock()
 	defer r.Unlock()
-	if err := r.MemoryRepo.ShortURLCreate(shortURL); err != nil {
+	if err := r.MemoryRepo.ShortURLCreate(ctx, shortURL); err != nil {
 		return err
 	}
 	if err := r.encoder.Encode(aofRecord{ShortURLCreate: shortURL}); err != nil {
@@ -121,11 +122,11 @@ func loadRecord(record *aofRecord, repo *MemoryRepo) error {
 
 	switch {
 	case record.UserCreate != nil:
-		if err := repo.UserCreate(record.UserCreate); err != nil {
+		if err := repo.UserCreate(context.Background(), record.UserCreate); err != nil {
 			return err
 		}
 	case record.ShortURLCreate != nil:
-		if err := repo.ShortURLCreate(record.ShortURLCreate); err != nil {
+		if err := repo.ShortURLCreate(context.Background(), record.ShortURLCreate); err != nil {
 			return err
 		}
 	default:

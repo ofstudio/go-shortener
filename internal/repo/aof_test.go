@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/stretchr/testify/suite"
 	"os"
@@ -61,21 +62,21 @@ func (suite *aofRepoSuite) TestAOFRepo_UserCreate() {
 	// Создаем репозиторий и записываем в него пользователя
 	repo1, err := NewAOFRepo(suite.filePath)
 	suite.NoError(err)
-	suite.NoError(repo1.UserCreate(&models.User{ID: 100}))
+	suite.NoError(repo1.UserCreate(context.Background(), &models.User{ID: 100}))
 	suite.NoError(repo1.Close())
 
 	// Открываем репозиторий и проверяем, что пользователь записан в него
 	repo2, err := NewAOFRepo(suite.filePath)
 	suite.NoError(err)
-	user, err := repo2.UserGetByID(100)
+	user, err := repo2.UserGetByID(context.Background(), 100)
 	suite.NoError(err)
 	suite.Equal(100, int(user.ID))
 
 	// Пытаемся записать в закрытый репозиторий
 	suite.NoError(repo2.Close())
-	suite.Equal(ErrAOFWrite, repo2.UserCreate(&models.User{ID: 1000}))
+	suite.Equal(ErrAOFWrite, repo2.UserCreate(context.Background(), &models.User{ID: 1000}))
 	// Проверяем, что пользователь не записан в репозиторий
-	_, err = repo2.UserGetByID(1000)
+	_, err = repo2.UserGetByID(context.Background(), 1000)
 	suite.Equal(ErrNotFound, err)
 }
 
@@ -83,13 +84,13 @@ func (suite *aofRepoSuite) TestAOFRepo_ShortURLCreate() {
 	// Создаем репозиторий и записываем в него сокращенную ссылку
 	repo1, err := NewAOFRepo(suite.filePath)
 	suite.NoError(err)
-	suite.NoError(repo1.ShortURLCreate(&models.ShortURL{ID: "abc123", OriginalURL: "https://www.ya.ru", UserID: 100}))
+	suite.NoError(repo1.ShortURLCreate(context.Background(), &models.ShortURL{ID: "abc123", OriginalURL: "https://www.ya.ru", UserID: 100}))
 	suite.NoError(repo1.Close())
 
 	// Открываем репозиторий и проверяем, что сокращенная ссылка записана в него
 	repo2, err := NewAOFRepo(suite.filePath)
 	suite.NoError(err)
-	shortURL, err := repo2.ShortURLGetByID("abc123")
+	shortURL, err := repo2.ShortURLGetByID(context.Background(), "abc123")
 	suite.NoError(err)
 	suite.Equal("abc123", shortURL.ID)
 	suite.Equal("https://www.ya.ru", shortURL.OriginalURL)
@@ -97,12 +98,12 @@ func (suite *aofRepoSuite) TestAOFRepo_ShortURLCreate() {
 
 	// Пытаемся записать в закрытый репозиторий
 	suite.NoError(repo2.Close())
-	suite.Equal(ErrAOFWrite, repo2.ShortURLCreate(&models.ShortURL{ID: "xyz123", OriginalURL: "https://www.ya.ru", UserID: 1000}))
+	suite.Equal(ErrAOFWrite, repo2.ShortURLCreate(context.Background(), &models.ShortURL{ID: "xyz123", OriginalURL: "https://www.ya.ru", UserID: 1000}))
 	// Проверяем, что сокращенная ссылка не записана в репозиторий
-	_, err = repo2.ShortURLGetByID("xyz123")
+	_, err = repo2.ShortURLGetByID(context.Background(), "xyz123")
 	suite.Equal(ErrNotFound, err)
 	// Проверяем, что сокращенная ссылка также не доступна в списке ссылок пользователя
-	userURLs, err := repo2.ShortURLGetByUserID(1000)
+	userURLs, err := repo2.ShortURLGetByUserID(context.Background(), 1000)
 	suite.NoError(err)
 	suite.Equal(0, len(userURLs))
 }

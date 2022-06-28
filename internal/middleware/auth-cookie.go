@@ -96,7 +96,7 @@ func (m *AuthCookie) Handler(next http.Handler) http.Handler {
 // setCookie - устанавливает куку и передает запрос дальше
 func (m *AuthCookie) setCookie(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	user := &models.User{}
-	if err := m.srv.UserService.Create(user); err != nil {
+	if err := m.srv.UserService.Create(r.Context(), user); err != nil {
 		respondWithError(w, err)
 		return
 	}

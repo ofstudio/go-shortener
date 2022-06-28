@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"sync"
 )
@@ -25,7 +26,7 @@ func NewMemoryRepo() *MemoryRepo {
 
 // UserCreate - добавляет нового пользователя в репозиторий.
 // Если пользователь с таким id уже существует, возвращает ошибку ErrDuplicate.
-func (r *MemoryRepo) UserCreate(user *models.User) error {
+func (r *MemoryRepo) UserCreate(_ context.Context, user *models.User) error {
 	r.Lock()
 	defer r.Unlock()
 	if user == nil {
@@ -41,7 +42,7 @@ func (r *MemoryRepo) UserCreate(user *models.User) error {
 }
 
 // UserGetByID - возвращает пользователя по его id либо ErrNotFound.
-func (r *MemoryRepo) UserGetByID(id uint) (*models.User, error) {
+func (r *MemoryRepo) UserGetByID(_ context.Context, id uint) (*models.User, error) {
 	r.RLock()
 	defer r.RUnlock()
 	if user, ok := r.users[id]; ok {
@@ -52,7 +53,7 @@ func (r *MemoryRepo) UserGetByID(id uint) (*models.User, error) {
 
 // ShortURLCreate - создает новую короткую ссылку в репозитории.
 // Если короткая ссылка с таким id уже существует, возвращает ErrDuplicate.
-func (r *MemoryRepo) ShortURLCreate(shortURL *models.ShortURL) error {
+func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL) error {
 	r.Lock()
 	defer r.Unlock()
 	if shortURL == nil {
@@ -67,7 +68,7 @@ func (r *MemoryRepo) ShortURLCreate(shortURL *models.ShortURL) error {
 }
 
 // ShortURLGetByID - возвращает короткую ссылку по ее id либо ErrNotFound.
-func (r *MemoryRepo) ShortURLGetByID(id string) (*models.ShortURL, error) {
+func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.ShortURL, error) {
 	r.RLock()
 	defer r.RUnlock()
 	if shortURL, ok := r.shortURLs[id]; ok {
@@ -79,7 +80,7 @@ func (r *MemoryRepo) ShortURLGetByID(id string) (*models.ShortURL, error) {
 // ShortURLGetByUserID - возвращает список коротких ссылок пользователя.
 // Если пользователь не существует, возвращает ошибку ErrNotFound.
 // Если у пользователя нет коротких ссылок, возвращает пустой слайс.
-func (r *MemoryRepo) ShortURLGetByUserID(userID uint) ([]models.ShortURL, error) {
+func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]models.ShortURL, error) {
 	r.RLock()
 	defer r.RUnlock()
 	index, ok := r.userShortURLs[userID]

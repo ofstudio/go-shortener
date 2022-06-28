@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
@@ -14,7 +15,7 @@ func NewHealthService(repo repo.Repo) *HealthService {
 }
 
 // Check - выполняет проверку приложения
-func (s *HealthService) Check() error {
+func (s *HealthService) Check(_ context.Context) error {
 	// Если используется SQL-репозиторий, то проверяем подключение к БД.
 	sqlRepo, ok := s.repo.(*repo.SQLRepo)
 	if ok {

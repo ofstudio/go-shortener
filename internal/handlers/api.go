@@ -54,7 +54,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Создаем сокращенную ссылку
-	shortURL, err := h.srv.ShortURLService.Create(userID, reqBody.URL)
+	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, reqBody.URL)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -90,7 +90,7 @@ func (h APIHandlers) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем список сокращенных ссылок пользователя
-	shortURLs, err := h.srv.ShortURLService.GetByUserID(userID)
+	shortURLs, err := h.srv.ShortURLService.GetByUserID(r.Context(), userID)
 	if err != nil {
 		respondWithError(w, err)
 		return

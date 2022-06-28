@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-var _ = Describe("HTTP Handlers", func() {
+var _ = Describe("shortURL handlers", func() {
 	server := &ghttp.Server{}
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
@@ -96,6 +96,21 @@ var _ = Describe("HTTP Handlers", func() {
 		})
 	})
 
+})
+
+var _ = Describe("ping handler", func() {
+	When("no sql database configured", func() {
+		It("returns 200", func() {
+		})
+	})
+	When("sql database configured and connected", func() {
+		It("returns 200", func() {
+		})
+	})
+	When("sql database configured but not connected", func() {
+		It("returns 500", func() {
+		})
+	})
 })
 
 func testHTTPRequest(method, u, contentType, body string, cookies ...*http.Cookie) *http.Response {
