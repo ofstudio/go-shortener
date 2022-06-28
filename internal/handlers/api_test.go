@@ -1,110 +1,157 @@
-package handlers
+package handlers_test
 
 import (
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/pkg/storage"
-	"github.com/stretchr/testify/require"
+	"github.com/ofstudio/go-shortener/internal/handlers"
+	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/repo"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"strings"
-	"testing"
 )
 
-func TestAPIHandlers_CreateShortURL(t *testing.T) {
-	cfg := &config.Config{URLMaxLen: 20, BaseURL: "https://example.com/"}
-	srv := services.NewShortenerService(cfg, storage.NewMemoryStorage())
+var _ = Describe("API POST /shorten ", func() {
+	var server *ghttp.Server
+	cfg := &config.DefaultConfig
+	repository := repo.NewMemoryRepo()
+	shortURLService := services.NewShortURLService(cfg, repository)
+	userService := services.NewUserService(cfg, repository)
 
-	t.Run("successful", func(t *testing.T) {
-		reqBody := strings.NewReader(`{"url":"https://me.com/"}`)
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, resBody := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusCreated, res.StatusCode)
-		require.Equal(t, "application/json", res.Header.Get("Content-Type"))
-		shortURLRes := createShortURLRes{}
-		require.NoError(t, json.Unmarshal([]byte(resBody), &shortURLRes))
-		require.NotEmpty(t, shortURLRes.Result)
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+		cfg.BaseURL = testParseURL(server.URL() + "/")
+		r := chi.NewRouter()
+		r.Use(middleware.NewAuthCookie(userService).Handler)
+		r.Mount("/", handlers.NewAPIHandlers(shortURLService).Routes())
+		server.AppendHandlers(r.ServeHTTP)
 	})
 
-	t.Run("invalid url", func(t *testing.T) {
-		reqBody := strings.NewReader(`{"url":"file:///etc/passwd"}`)
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	AfterEach(func() {
+		server.Close()
 	})
 
-	t.Run("too long url", func(t *testing.T) {
-		reqBody := strings.NewReader(`{"url":"https://example.com/a/b/c/d/e/f/g/h/i/j/k/l/m"}`)
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	When("valid json sent", func() {
+		It("should successfully create short url", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.google.com"}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
+			resBody, err := ioutil.ReadAll(res.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+			resJson := &struct {
+				Result string `json:"result"`
+			}{}
+			Expect(json.Unmarshal(resBody, resJson)).Should(Succeed())
+			Expect(resJson.Result).ShouldNot(BeEmpty())
+		})
+	})
+	When("too long url sent", func() {
+		It("should return 400", func() {
+			u := "https://www.google.com/" + strings.Repeat("a", cfg.URLMaxLen)
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"`+u+`"}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("empty url sent", func() {
+		It("should return 400", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":""}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("invalid url scheme sent", func() {
+		It("should return 400", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"ftp://www.google.com"}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("wrong json sent", func() {
+		It("should return 400", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"wrong":true}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("malformed json sent", func() {
+		It("should return 400", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `}malformed{`)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("empty body sent", func() {
+		It("should return 400", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", ``)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("wrong content type sent", func() {
+		It("should return 400", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/xml", `{"url":"https://www.google.com"}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+})
+
+var _ = Describe("API GET /user/urls", func() {
+	var server *ghttp.Server
+	cfg := &config.DefaultConfig
+	repository := repo.NewMemoryRepo()
+	shortURLService := services.NewShortURLService(cfg, repository)
+	userService := services.NewUserService(cfg, repository)
+
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+		cfg.BaseURL = testParseURL(server.URL() + "/")
+		r := chi.NewRouter()
+		r.Use(middleware.NewAuthCookie(userService).Handler)
+		r.Mount("/", handlers.NewAPIHandlers(shortURLService).Routes())
+		server.AppendHandlers(r.ServeHTTP)
+	})
+	AfterEach(func() {
+		server.Close()
 	})
 
-	t.Run("empty body", func(t *testing.T) {
-		reqBody := strings.NewReader("")
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	When("user is authenticated", func() {
+		var cookie *http.Cookie
+		It("should return cookie on first request", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.google.com"}`)
+			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+			Expect(res.Cookies()).ShouldNot(BeEmpty())
+			cookie = res.Cookies()[0]
+		})
+		It("should accept cookie on second request", func() {
+			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.apple.com"}`, cookie)
+			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+		})
+		It("should return list of urls", func() {
+			res := testHTTPRequest("GET", server.URL()+"/user/urls", "", "", cookie)
+			Expect(res.StatusCode).Should(Equal(http.StatusOK))
+			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
+			resBody, err := ioutil.ReadAll(res.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+			var resJson []struct {
+				ShortURL    string `json:"short_url"`
+				OriginalURL string `json:"original_url"`
+			}
+			Expect(json.Unmarshal(resBody, &resJson)).Should(Succeed())
+			Expect(resJson).Should(HaveLen(2))
+			Expect(resJson[0].ShortURL).ShouldNot(BeEmpty())
+			Expect(resJson[0].OriginalURL).Should(Equal("https://www.google.com"))
+			Expect(resJson[1].ShortURL).ShouldNot(BeEmpty())
+			Expect(resJson[1].OriginalURL).Should(Equal("https://www.apple.com"))
+		})
 	})
 
-	t.Run("empty JSON", func(t *testing.T) {
-		reqBody := strings.NewReader("{}")
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
+	When("user is not authenticated", func() {
+		It("should return 204", func() {
+			res := testHTTPRequest("GET", server.URL()+"/user/urls", "", "")
+			Expect(res.StatusCode).Should(Equal(http.StatusNoContent))
+		})
 	})
+})
 
-	t.Run("invalid JSON", func(t *testing.T) {
-		reqBody := strings.NewReader("<this>is not</valid>json")
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/json", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	})
-
-	t.Run("no content type", func(t *testing.T) {
-		reqBody := strings.NewReader(`{"url":"https://me.com/"}`)
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	})
-
-	t.Run("invalid content type", func(t *testing.T) {
-		reqBody := strings.NewReader(`{"url":"https://me.com/"}`)
-		r := NewAPIHandlers(srv).Routes()
-		ts := httptest.NewServer(r)
-		defer ts.Close()
-		res, _ := testRequest(t, ts, http.MethodPost, "/shorten", "application/xml", reqBody)
-		// statictest_workaround: res.Body уже закрыта на выходе из testRequest
-		defer res.Body.Close()
-		require.Equal(t, http.StatusBadRequest, res.StatusCode)
-	})
-}
