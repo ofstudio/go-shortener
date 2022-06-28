@@ -93,7 +93,6 @@ func (w *CompressedWriter) Write(p []byte) (int, error) {
 
 	// Если не была произведена проверка типа данных, то проверяем его.
 	if !w.typeChecked {
-		w.typeChecked = true
 		// Если тип данных не разрешен для сжатия, то устанавливаем состояние компрессора не сжимать данные
 		if !w.typeCheck(w.ResponseWriter.Header().Get("Content-Type")) {
 			w.state = statePass
@@ -180,6 +179,7 @@ func (w *CompressedWriter) Close() error {
 
 // typeCheck - проверяет, может ли сжиматься данный Content-Type.
 func (w *CompressedWriter) typeCheck(contentType string) bool {
+	w.typeChecked = true
 	// Если не задано ни одного типа, сжимаем по умолчанию все типы.
 	if len(w.allowedTypes) == 0 {
 		return true
