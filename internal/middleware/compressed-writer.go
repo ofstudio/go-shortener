@@ -164,15 +164,16 @@ func (w *CompressedWriter) Close() error {
 		return w.compWriter.Close()
 
 	// Если признак решения о сжатии не установлен и есть данные в буфере,
-	// то отправляем их в поток для несжатых данных.
+	// то отправляем сохраненный заголовок и отправляем данные в поток для несжатых данных.
 	case w.buffered > 0:
 		w.resumeWriteHeader()
 		_, err := w.ResponseWriter.Write(w.buf[:w.buffered])
 		return err
 
 	// Если признак решения о сжатии не установлен и нет данных в буфере,
-	// то ничего не делаем.
+	// то отправляем сохраненный заголовок.
 	default:
+		w.resumeWriteHeader()
 		return nil
 	}
 }
