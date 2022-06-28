@@ -102,6 +102,7 @@ var _ = Describe("API GET /user/urls", func() {
 	repository := repo.NewMemoryRepo()
 	shortURLService := services.NewShortURLService(cfg, repository)
 	userService := services.NewUserService(cfg, repository)
+	var cookie *http.Cookie
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -115,8 +116,7 @@ var _ = Describe("API GET /user/urls", func() {
 		server.Close()
 	})
 
-	When("user is authenticated", func() {
-		var cookie *http.Cookie
+	When("cookie is provided", func() {
 		It("should return cookie on first request", func() {
 			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.google.com"}`)
 			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
@@ -146,8 +146,13 @@ var _ = Describe("API GET /user/urls", func() {
 			Expect(resJSON[1].OriginalURL).Should(Equal("https://www.apple.com"))
 		})
 	})
-
-	When("user is not authenticated", func() {
+	When("cookie is invalid", func() {
+		It("should return 204", func() {
+			res := testHTTPRequest("GET", server.URL()+"/user/urls", "", "", &http.Cookie{Name: "auth_token", Value: "invalid!invalid!invalid!invalid!"})
+			Expect(res.StatusCode).Should(Equal(http.StatusNoContent))
+		})
+	})
+	When("cookie is not provided", func() {
 		It("should return 204", func() {
 			res := testHTTPRequest("GET", server.URL()+"/user/urls", "", "")
 			Expect(res.StatusCode).Should(Equal(http.StatusNoContent))
