@@ -83,6 +83,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 	// Устанавливаем часть доступных флагов
 	args := []string{
 		"-a", "0.0.0.0:3000",
+		"-d", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable",
 	}
 	// Устанавливаем часть переменных окружения
 	suite.setenv(map[string]string{
@@ -95,10 +96,11 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 
 	// Проверяем, что прочитаны заданные флаги
 	suite.Equal("0.0.0.0:3000", cfg.ServerAddress)
-	suite.Equal("https://example.com/", cfg.BaseURL.String())
+	suite.Equal("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", cfg.DatabaseDSN)
 
 	// Проверяем, что прочитаны заданные переменные окружения
 	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+	suite.Equal("https://example.com/", cfg.BaseURL.String())
 
 	// Проверяем, что остальные параметры установлены в значения по умолчанию
 	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)

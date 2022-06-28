@@ -20,16 +20,19 @@ var _ = Describe("HTTP Handlers", func() {
 	server := &ghttp.Server{}
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	shortURLService := services.NewShortURLService(cfg, repository)
-	userService := services.NewUserService(cfg, repository)
+	srv := &services.Services{
+		ShortURLService: services.NewShortURLService(cfg, repository),
+		HealthService:   nil,
+		UserService:     services.NewUserService(cfg, repository),
+	}
 	shortURLPath := ""
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(userService).Handler)
-		r.Mount("/", handlers.NewHTTPHandlers(shortURLService).Routes())
+		r.Use(middleware.NewAuthCookie(srv).Handler)
+		r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 

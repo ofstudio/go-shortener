@@ -35,6 +35,9 @@ type Config struct {
 
 	// AuthSecret - секретный ключ для подписи авторизационного токена
 	AuthSecret string `env:"AUTH_SECRET,unset"`
+
+	// DatabaseDSN - строка с адресом подключения к БД
+	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
 // DefaultConfig - конфигурация по умолчанию
@@ -45,6 +48,7 @@ var (
 		ServerAddress: "0.0.0.0:8080",
 		AuthTTL:       time.Minute * 60 * 24 * 30,
 		AuthSecret:    mustRandSecret(64),
+		DatabaseDSN:   "",
 	}
 )
 
@@ -66,9 +70,10 @@ func MustNewFromEnvAndCLI() *Config {
 //    -b <url>       - базовый адрес сокращённого URL
 //    -f <path>      - файл для хранения данных
 //    -t <duration>  - время жизни авторизационного токена
+//	  -d <dsn>       - строка с адресом подключения к БД
 //
-// Если какие-либо переменные окружения не заданы,
-// используются значения по умолчанию из DefaultConfig.
+// Если какие-либо значения не заданы ни в переменных окружения, ни в командной строке,
+// то используются значения по умолчанию из DefaultConfig.
 func NewFromEnvAndCLI() (*Config, error) {
 	return newFromEnvAndCLI(os.Args[1:])
 }
@@ -87,6 +92,7 @@ func newFromEnvAndCLI(arguments []string) (*Config, error) {
 	cli.Func("b", "Base URL", urlParseFunc(&cfg.BaseURL))
 	cli.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File storage path (default: in-memory)")
 	cli.DurationVar(&cfg.AuthTTL, "t", cfg.AuthTTL, "Auth token TTL")
+	cli.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "Database DSN")
 	if err = cli.Parse(arguments); err != nil {
 		return nil, err
 	}

@@ -10,11 +10,11 @@ import (
 
 // HTTPHandlers - HTTP-хендлеры для сервиса services.ShortURLService
 type HTTPHandlers struct {
-	shortURLService *services.ShortURLService
+	srv *services.Services
 }
 
-func NewHTTPHandlers(srv *services.ShortURLService) *HTTPHandlers {
-	return &HTTPHandlers{srv}
+func NewHTTPHandlers(srv *services.Services) *HTTPHandlers {
+	return &HTTPHandlers{srv: srv}
 }
 
 func (h HTTPHandlers) Routes() chi.Router {
@@ -29,7 +29,7 @@ func (h HTTPHandlers) Routes() chi.Router {
 // в HTTP-заголовке Location.
 func (h HTTPHandlers) shortURLRedirectToOriginal(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	shortURL, err := h.shortURLService.GetByID(id)
+	shortURL, err := h.srv.ShortURLService.GetByID(id)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -57,7 +57,7 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := h.shortURLService.Create(userID, string(b))
+	shortURL, err := h.srv.ShortURLService.Create(userID, string(b))
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -65,5 +65,5 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(h.shortURLService.Resolve(shortURL.ID)))
+	_, _ = w.Write([]byte(h.srv.ShortURLService.Resolve(shortURL.ID)))
 }

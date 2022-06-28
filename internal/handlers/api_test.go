@@ -20,15 +20,18 @@ var _ = Describe("API POST /shorten ", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	shortURLService := services.NewShortURLService(cfg, repository)
-	userService := services.NewUserService(cfg, repository)
+	srv := &services.Services{
+		ShortURLService: services.NewShortURLService(cfg, repository),
+		HealthService:   nil,
+		UserService:     services.NewUserService(cfg, repository),
+	}
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(userService).Handler)
-		r.Mount("/", handlers.NewAPIHandlers(shortURLService).Routes())
+		r.Use(middleware.NewAuthCookie(srv).Handler)
+		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 
@@ -100,16 +103,19 @@ var _ = Describe("API GET /user/urls", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	shortURLService := services.NewShortURLService(cfg, repository)
-	userService := services.NewUserService(cfg, repository)
+	srv := &services.Services{
+		ShortURLService: services.NewShortURLService(cfg, repository),
+		HealthService:   nil,
+		UserService:     services.NewUserService(cfg, repository),
+	}
 	var cookie *http.Cookie
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(userService).Handler)
-		r.Mount("/", handlers.NewAPIHandlers(shortURLService).Routes())
+		r.Use(middleware.NewAuthCookie(srv).Handler)
+		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {

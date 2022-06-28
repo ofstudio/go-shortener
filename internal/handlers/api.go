@@ -11,11 +11,11 @@ import (
 
 // APIHandlers - HTTP-хендлеры для JSON API
 type APIHandlers struct {
-	shortURLService *services.ShortURLService
+	srv *services.Services
 }
 
-func NewAPIHandlers(shortURLService *services.ShortURLService) *APIHandlers {
-	return &APIHandlers{shortURLService}
+func NewAPIHandlers(srv *services.Services) *APIHandlers {
+	return &APIHandlers{srv}
 }
 
 func (h APIHandlers) Routes() chi.Router {
@@ -54,7 +54,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Создаем сокращенную ссылку
-	shortURL, err := h.shortURLService.Create(userID, reqBody.URL)
+	shortURL, err := h.srv.ShortURLService.Create(userID, reqBody.URL)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -63,7 +63,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	// Возвращаем ответ
 	respondWithJSON(w,
 		http.StatusCreated,
-		resType{Result: h.shortURLService.Resolve(shortURL.ID)})
+		resType{Result: h.srv.ShortURLService.Resolve(shortURL.ID)})
 }
 
 // getUserURLs - возвращает список сокращенных ссылок пользователя.
@@ -90,7 +90,7 @@ func (h APIHandlers) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получаем список сокращенных ссылок пользователя
-	shortURLs, err := h.shortURLService.GetByUserID(userID)
+	shortURLs, err := h.srv.ShortURLService.GetByUserID(userID)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -106,7 +106,7 @@ func (h APIHandlers) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	res := make([]resType, len(shortURLs))
 	for i := range shortURLs {
 		res[i] = resType{
-			ShortURL:    h.shortURLService.Resolve(shortURLs[i].ID),
+			ShortURL:    h.srv.ShortURLService.Resolve(shortURLs[i].ID),
 			OriginalURL: shortURLs[i].OriginalURL,
 		}
 	}

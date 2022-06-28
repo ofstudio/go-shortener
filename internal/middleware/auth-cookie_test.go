@@ -19,11 +19,12 @@ var _ = Describe("AuthCookie Middleware", func() {
 
 	BeforeEach(func() {
 		repository := repo.NewMemoryRepo()
-		userService := services.NewUserService(cfg, repository)
-
+		srv := &services.Services{
+			UserService: services.NewUserService(cfg, repository),
+		}
 		server = ghttp.NewServer()
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(userService).WithSecret([]byte(cfg.AuthSecret)).Handler)
+		r.Use(middleware.NewAuthCookie(srv).WithSecret([]byte(cfg.AuthSecret)).Handler)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			Expect(w.Write([]byte("Hello, World!"))).Error().ShouldNot(HaveOccurred())
 		})

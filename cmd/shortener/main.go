@@ -20,11 +20,17 @@ func main() {
 	// Считываем конфигурацию.
 	cfg := config.MustNewFromEnvAndCLI()
 
-	// Создаём репозиторий и сервисы
+	// Создаём репозиторий
 	repository := repo.MustNewRepoFabric(cfg.FileStoragePath)
+	//goland:noinspection ALL
 	defer repository.Close()
-	shortURLService := services.NewShortURLService(cfg, repository)
-	userService := services.NewUserService(cfg, repository)
+
+	// Создаём сервисы
+	srv := &services.Services{
+		ShortURLService: services.NewShortURLService(cfg, repository),
+		HealthService:   services.NewHealthService(nil),
+		UserService:     services.NewUserService(cfg, repository),
+	}
 
 	// Создаём маршрутизатор
 	r := chi.NewRouter()
@@ -40,15 +46,15 @@ func main() {
 		AddType("text/html").Handler)
 
 	// Middleware аутентификационной куки.
-	r.Use(middleware.NewAuthCookie(userService).
+	r.Use(middleware.NewAuthCookie(srv).
 		WithSecret([]byte(cfg.AuthSecret)).
 		WithDomain(cfg.BaseURL.Host).
 		WithTTL(cfg.AuthTTL).
 		WithSecure(cfg.BaseURL.Scheme == "https").Handler)
 
 	// Добавляем рауты для обработки запросов.
-	r.Mount("/", handlers.NewHTTPHandlers(shortURLService).Routes())
-	r.Mount("/api/", handlers.NewAPIHandlers(shortURLService).Routes())
+	r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
+	r.Mount("/api/", handlers.NewAPIHandlers(srv).Routes())
 
 	// Создаём сервер.
 	server := &http.Server{
