@@ -13,15 +13,17 @@ import (
 	"time"
 )
 
-const (
-	authCookieName   = "auth_token"
-	authCookieCtxKey = "userId"
-)
+type contextKey struct {
+	name string
+}
+
+var UserIDCtxKey = &contextKey{"user_id"}
 
 const (
-	lenData      = 8 // uint64 size
-	lenSignature = sha256.Size
-	lenToken     = lenData + lenSignature
+	authCookieName = "auth_token"
+	lenData        = 8 // uint64 size
+	lenSignature   = sha256.Size
+	lenToken       = lenData + lenSignature
 )
 
 // AuthCookie - middleware для проверки и установки аутентификационной куки.
@@ -70,7 +72,7 @@ func (m *AuthCookie) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(authCookieName)
 		// Если кука не найдена - устанавливаем куку и передаем обработку запроса дальше
-		if err == http.ErrNoCookie {
+		if err == http.ErrNoCookie || cookie == nil {
 			m.setCookie(w, r, next)
 			return
 		}
@@ -120,7 +122,7 @@ func (m *AuthCookie) setCookie(w http.ResponseWriter, r *http.Request, next http
 
 // withContext - устанавливает userID в контекст запроса
 func (m *AuthCookie) withContext(r *http.Request, id uint) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), authCookieCtxKey, id))
+	return r.WithContext(context.WithValue(r.Context(), UserIDCtxKey, id))
 }
 
 // createToken - создает и подписывает куку для пользователя
@@ -166,7 +168,7 @@ func (m *AuthCookie) sign(data, secret []byte) ([]byte, error) {
 
 // UserIDFromContext - возвращает userID из контекста
 func UserIDFromContext(ctx context.Context) (uint, bool) {
-	id, ok := ctx.Value(authCookieCtxKey).(uint)
+	id, ok := ctx.Value(UserIDCtxKey).(uint)
 	if !ok {
 		return 0, false
 	}
