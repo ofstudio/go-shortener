@@ -19,6 +19,7 @@ func NewHTTPHandlers(srv *services.Services) *HTTPHandlers {
 
 func (h HTTPHandlers) Routes() chi.Router {
 	r := chi.NewRouter()
+	r.Get("/ping", h.ping)
 	r.Get("/{id}", h.shortURLRedirectToOriginal)
 	r.Post("/", h.shortURLCreate)
 	return r
@@ -66,4 +67,13 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write([]byte(h.srv.ShortURLService.Resolve(shortURL.ID)))
+}
+
+func (h *HTTPHandlers) ping(w http.ResponseWriter, _ *http.Request) {
+	err := h.srv.HealthService.Check()
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

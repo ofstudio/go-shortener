@@ -21,7 +21,6 @@ func MustNewSQLRepo(dsn string) *SQLRepo {
 
 func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	db, err := sql.Open("pgx", dsn)
-	log.Println(db)
 	if err != nil {
 		return nil, err
 	}
