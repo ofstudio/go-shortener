@@ -19,10 +19,8 @@ import (
 func main() {
 	// Считываем конфигурацию.
 	cfg := config.MustNewFromEnvAndCLI()
-
-	// Создаём репозиторий
-	repository := repo.MustNewRepoFabric(cfg.FileStoragePath)
-	//goland:noinspection ALL
+	// Создаём репозиторий и сервисы.
+	repository := repo.Fabric(cfg)
 	defer repository.Close()
 
 	// Создаём сервисы
