@@ -7,8 +7,8 @@ import (
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/handlers"
-	"github.com/ofstudio/go-shortener/pkg/middleware"
-	"github.com/ofstudio/go-shortener/pkg/storage"
+	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/repo"
 	"log"
 	"net/http"
 	"os"
@@ -18,48 +18,37 @@ import (
 
 func main() {
 	// Считываем конфигурацию.
-	cfg, err := config.NewFromEnvAndCLI()
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg := config.MustNewFromEnvAndCLI()
 
-	// Создаём хранилище.
-	// Если задан cfg.FileStoragePath, то используем файловый сторадж, иначе храним в памяти.
-	var db storage.Interface
-	if cfg.FileStoragePath != "" {
-		log.Println("Using append-only file storage:", cfg.FileStoragePath)
-		db, err = storage.NewAOFStorage(cfg.FileStoragePath)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		log.Println("Using in-memory storage")
-		db = storage.NewMemoryStorage()
-	}
+	// Создаём репозиторий и сервисы
+	repository := repo.MustNewRepoFabric(cfg.FileStoragePath)
+	defer repository.Close()
+	shortURLService := services.NewShortURLService(cfg, repository)
+	userService := services.NewUserService(cfg, repository)
 
-	// Создаём сервис и обработчики запросов.
-	srv := services.NewShortenerService(cfg, db)
-	appHandlers := handlers.NewShortenerHandlers(srv)
-	apiHandlers := handlers.NewAPIHandlers(srv)
-
-	// Создаём маршрутизатор.
+	// Создаём маршрутизатор
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Logger)
 
-	// Middleware для декомпрессии запросов.
-	r.Use(middleware.Decompressor)
-
-	// Middleware для компрессии ответов.
+	// Middleware для декомпрессии и компрессии ответов.
 	// Параметр minSize рекомендуется равным middleware.MTUSize.
 	// Значение 0 означает сжатие ответов любой длины и используется в целях демонстрации.
+	r.Use(middleware.Decompressor)
 	r.Use(middleware.NewCompressor(0, gzip.BestSpeed).
 		AddType("application/json").
 		AddType("text/plain").
 		AddType("text/html").Handler)
 
-	// Добавляем маршруты для обработки запросов.
-	r.Mount("/", appHandlers.Routes())
-	r.Mount("/api/", apiHandlers.Routes())
+	// Middleware аутентификационной куки.
+	r.Use(middleware.NewAuthCookie(userService).
+		WithSecret([]byte(cfg.AuthSecret)).
+		WithDomain(cfg.BaseURL.Host).
+		WithTTL(cfg.AuthTTL).
+		WithSecure(cfg.BaseURL.Scheme == "https").Handler)
+
+	// Добавляем рауты для обработки запросов.
+	r.Mount("/", handlers.NewHTTPHandlers(shortURLService).Routes())
+	r.Mount("/api/", handlers.NewAPIHandlers(shortURLService).Routes())
 
 	// Создаём сервер.
 	server := &http.Server{
@@ -78,10 +67,11 @@ func main() {
 
 	// Запускаем сервер.
 	log.Printf("Starting http server at %s", cfg.ServerAddress)
-	switch server.ListenAndServe() {
-	case http.ErrServerClosed:
-		log.Println("Server stopped. Exiting...")
-	default:
-		log.Fatal(err)
+	err := server.ListenAndServe()
+
+	if err == http.ErrServerClosed {
+		log.Println("Http server stopped. Exiting...")
+	} else if err != nil {
+		log.Fatalf("Http server error: %v", err)
 	}
 }
