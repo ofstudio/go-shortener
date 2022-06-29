@@ -11,10 +11,10 @@ import (
 
 // APIHandlers - HTTP-хендлеры для JSON API
 type APIHandlers struct {
-	srv *services.Services
+	srv *services.Container
 }
 
-func NewAPIHandlers(srv *services.Services) *APIHandlers {
+func NewAPIHandlers(srv *services.Container) *APIHandlers {
 	return &APIHandlers{srv}
 }
 

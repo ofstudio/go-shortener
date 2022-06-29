@@ -10,10 +10,10 @@ import (
 
 // HTTPHandlers - HTTP-хендлеры для сервиса services.ShortURLService
 type HTTPHandlers struct {
-	srv *services.Services
+	srv *services.Container
 }
 
-func NewHTTPHandlers(srv *services.Services) *HTTPHandlers {
+func NewHTTPHandlers(srv *services.Container) *HTTPHandlers {
 	return &HTTPHandlers{srv: srv}
 }
 

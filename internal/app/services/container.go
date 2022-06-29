@@ -5,15 +5,15 @@ import (
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
-type Services struct {
+type Container struct {
 	ShortURLService *ShortURLService
 	HealthService   *HealthService
 	UserService     *UserService
 }
 
-// Fabric - фабрика для создания сервисов.
-func Fabric(cfg *config.Config, repo repo.Repo) *Services {
-	return &Services{
+// NewContainer - создает контейнер сервисов
+func NewContainer(cfg *config.Config, repo repo.Repo) *Container {
+	return &Container{
 		ShortURLService: NewShortURLService(cfg, repo),
 		HealthService:   NewHealthService(repo),
 		UserService:     NewUserService(cfg, repo),

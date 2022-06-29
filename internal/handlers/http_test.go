@@ -21,7 +21,7 @@ var _ = Describe("shortURL handlers", func() {
 	server := &ghttp.Server{}
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	srv := services.Fabric(cfg, repository)
+	srv := services.NewContainer(cfg, repository)
 	shortURLPath := ""
 
 	BeforeEach(func() {

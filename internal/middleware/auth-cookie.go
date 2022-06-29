@@ -31,14 +31,14 @@ const (
 // содержащую уникальный идентификатор пользователя, если такой куки не существует
 // или она не проходит проверку подлинности.
 type AuthCookie struct {
-	srv    *services.Services
+	srv    *services.Container
 	secret []byte
 	domain string
 	maxAge int
 	secure bool
 }
 
-func NewAuthCookie(srv *services.Services) *AuthCookie {
+func NewAuthCookie(srv *services.Container) *AuthCookie {
 	return &AuthCookie{srv: srv}
 }
 

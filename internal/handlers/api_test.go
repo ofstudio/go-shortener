@@ -21,7 +21,7 @@ var _ = Describe("API POST /shorten ", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	srv := services.Fabric(cfg, repository)
+	srv := services.NewContainer(cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -100,7 +100,7 @@ var _ = Describe("API GET /user/urls", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
 	repository := repo.NewMemoryRepo()
-	srv := services.Fabric(cfg, repository)
+	srv := services.NewContainer(cfg, repository)
 	var cookie *http.Cookie
 
 	BeforeEach(func() {
