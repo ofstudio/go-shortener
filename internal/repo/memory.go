@@ -12,7 +12,7 @@ type MemoryRepo struct {
 	users         map[uint]models.User
 	userShortURLs map[uint][]string
 	nextUserID    uint
-	sync.RWMutex
+	mu            sync.RWMutex
 }
 
 func NewMemoryRepo() *MemoryRepo {
@@ -27,8 +27,8 @@ func NewMemoryRepo() *MemoryRepo {
 // UserCreate - добавляет нового пользователя в репозиторий.
 // Если пользователь с таким id уже существует, возвращает ошибку ErrDuplicate.
 func (r *MemoryRepo) UserCreate(_ context.Context, user *models.User) error {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if user == nil {
 		return ErrInvalidModel
 	}
@@ -43,8 +43,8 @@ func (r *MemoryRepo) UserCreate(_ context.Context, user *models.User) error {
 
 // UserGetByID - возвращает пользователя по его id либо ErrNotFound.
 func (r *MemoryRepo) UserGetByID(_ context.Context, id uint) (*models.User, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	if user, ok := r.users[id]; ok {
 		return &user, nil
 	}
@@ -54,8 +54,8 @@ func (r *MemoryRepo) UserGetByID(_ context.Context, id uint) (*models.User, erro
 // ShortURLCreate - создает новую короткую ссылку в репозитории.
 // Если короткая ссылка с таким id уже существует, возвращает ErrDuplicate.
 func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL) error {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if shortURL == nil {
 		return ErrInvalidModel
 	}
@@ -69,8 +69,8 @@ func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL
 
 // ShortURLGetByID - возвращает короткую ссылку по ее id либо ErrNotFound.
 func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.ShortURL, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	if shortURL, ok := r.shortURLs[id]; ok {
 		return &shortURL, nil
 	}
@@ -81,8 +81,8 @@ func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.Shor
 // Если пользователь не существует, возвращает ошибку ErrNotFound.
 // Если у пользователя нет коротких ссылок, возвращает пустой слайс.
 func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]models.ShortURL, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	index, ok := r.userShortURLs[userID]
 	if !ok {
 		return nil, ErrNotFound
@@ -103,8 +103,8 @@ func (r *MemoryRepo) Close() error {
 // userDelete - удаляет пользователя, в тч из индекса ссылок пользователя.
 // Вызывается при неудачной попытке создания пользователя в AOFRepo.UserCreate.
 func (r *MemoryRepo) userDelete(id uint) {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	delete(r.users, id)
 	delete(r.userShortURLs, id)
 }
@@ -112,8 +112,8 @@ func (r *MemoryRepo) userDelete(id uint) {
 // shortURLDelete - удаляет короткую ссылку, в тч из индекса ссылок пользователя.
 // Вызывается при неудачной попытке создания короткой ссылки в AOFRepo.ShortURLCreate.
 func (r *MemoryRepo) shortURLDelete(id string) {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if shortURL, exist := r.shortURLs[id]; exist {
 		// Удаляем из индекса ссылок пользователя
 		userID := shortURL.UserID

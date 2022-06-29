@@ -26,7 +26,7 @@ type AOFRepo struct {
 	aof     *os.File
 	encoder *json.Encoder
 	*MemoryRepo
-	sync.Mutex
+	mu sync.Mutex
 }
 
 func MustNewAOFRepo(filePath string) *AOFRepo {
@@ -55,8 +55,8 @@ func NewAOFRepo(filePath string) (*AOFRepo, error) {
 // Если пользователь с таким id уже существует, возвращает ErrDuplicate.
 // При ошибке записи в файл, возвращает ErrAOFWrite.
 func (r *AOFRepo) UserCreate(ctx context.Context, user *models.User) error {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if err := r.MemoryRepo.UserCreate(ctx, user); err != nil {
 		return err
 	}
@@ -71,8 +71,8 @@ func (r *AOFRepo) UserCreate(ctx context.Context, user *models.User) error {
 // Если короткая ссылка с таким id уже существует, возвращает ErrDuplicate.
 // При ошибке записи в файл, возвращает ErrAOFWrite.
 func (r *AOFRepo) ShortURLCreate(ctx context.Context, shortURL *models.ShortURL) error {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if err := r.MemoryRepo.ShortURLCreate(ctx, shortURL); err != nil {
 		return err
 	}
