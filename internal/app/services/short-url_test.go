@@ -7,6 +7,7 @@ import (
 	"github.com/ofstudio/go-shortener/internal/repo"
 	"github.com/stretchr/testify/suite"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -51,8 +52,7 @@ func (suite *shortURLServiceSuite) TestCreate() {
 		_, err = suite.ShortURLService.Create(context.Background(), 1, "")
 		suite.Equal(ErrValidation, err)
 		// Слишком длинный URL
-		suite.cfg.URLMaxLen = 5
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://google.com/")
+		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://google.com/"+strings.Repeat("a", models.URLMaxLen))
 		suite.Equal(ErrValidation, err)
 	})
 

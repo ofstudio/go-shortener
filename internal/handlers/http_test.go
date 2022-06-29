@@ -6,6 +6,7 @@ import (
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/handlers"
 	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -63,7 +64,7 @@ var _ = Describe("shortURL handlers", func() {
 
 	When("original url is too long", func() {
 		It("returns 401 error", func() {
-			res := testHTTPRequest("POST", server.URL()+"/", "", "https://ya.ru/"+strings.Repeat("a", cfg.URLMaxLen))
+			res := testHTTPRequest("POST", server.URL()+"/", "", "https://ya.ru/"+strings.Repeat("a", models.URLMaxLen))
 			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
 		})
 	})

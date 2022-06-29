@@ -14,12 +14,6 @@ import (
 
 // Config - конфигурация приложения
 type Config struct {
-	// URLMaxLen - максимальная длина URL в байтах.
-	// Формально, размер URL ничем не ограничен.
-	// Разные версии разных браузеров имеют свои конкретные ограничения: от 2048 байт до нескольких мегабайт.
-	// В случае нашего сервиса необходимо некое разумное ограничение.
-	URLMaxLen int
-
 	// BaseURL - базовый адрес сокращённого URL.
 	BaseURL url.URL `env:"BASE_URL"`
 
@@ -43,7 +37,6 @@ type Config struct {
 // DefaultConfig - конфигурация по умолчанию
 var (
 	DefaultConfig = Config{
-		URLMaxLen:     4096,
 		BaseURL:       mustParseRequestURI("http://localhost:8080/"),
 		ServerAddress: "0.0.0.0:8080",
 		AuthTTL:       time.Minute * 60 * 24 * 30,

@@ -77,7 +77,7 @@ func (s ShortURLService) Resolve(id string) string {
 // validateURL - проверяет URL на максимальную длину и http/https-протокол
 func (s ShortURLService) validateURL(rawURL string) error {
 	// Проверка на максимальную длину URL
-	if len(rawURL) > s.cfg.URLMaxLen {
+	if len(rawURL) > models.URLMaxLen {
 		return ErrValidation
 	}
 

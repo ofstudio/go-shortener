@@ -7,6 +7,7 @@ import (
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/handlers"
 	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -52,7 +53,7 @@ var _ = Describe("API POST /shorten ", func() {
 	})
 	When("too long url sent", func() {
 		It("should return 400", func() {
-			u := "https://www.google.com/" + strings.Repeat("a", cfg.URLMaxLen)
+			u := "https://www.google.com/" + strings.Repeat("a", models.URLMaxLen)
 			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"`+u+`"}`)
 			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
 		})
