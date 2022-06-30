@@ -16,6 +16,7 @@ type Repo interface {
 	// ShortURLGetByID - возвращает сокращенную ссылку по ее id.
 	ShortURLGetByID(context.Context, string) (*models.ShortURL, error)
 	// ShortURLGetByUserID - возвращает сокращенные ссылки пользователя.
+	// Если пользователь не найден, или у пользователя нет ссылок возвращает nil.
 	ShortURLGetByUserID(context.Context, uint) ([]models.ShortURL, error)
 	Close() error
 }

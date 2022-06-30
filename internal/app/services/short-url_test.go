@@ -105,14 +105,14 @@ func (suite *shortURLServiceSuite) TestGetByUserID() {
 		suite.Require().NoError(suite.UserService.Create(context.Background(), user))
 		shortURLs, err := suite.ShortURLService.GetByUserID(context.Background(), user.ID)
 		suite.NoError(err)
-		suite.NotNil(shortURLs)
-		suite.Len(shortURLs, 0)
+		suite.Nil(shortURLs)
 	})
 
 	// Несуществующий пользователь
 	suite.Run("invalid user", func() {
-		_, err := suite.ShortURLService.GetByUserID(context.Background(), 100)
-		suite.Equal(ErrNotFound, err)
+		urls, err := suite.ShortURLService.GetByUserID(context.Background(), 100)
+		suite.NoError(err)
+		suite.Nil(urls)
 	})
 }
 

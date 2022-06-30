@@ -115,8 +115,9 @@ func (suite *memoryRepoSuite) TestShortURLGetByUserId() {
 	suite.Equal([]models.ShortURL{*shortURL1, *shortURL2}, shortURLs)
 
 	// Пытаемся получить сокращенные ссылки пользователя по несуществующему ID
-	_, err = suite.repo.ShortURLGetByUserID(context.Background(), 2)
-	suite.Equal(ErrNotFound, err)
+	urls, err := suite.repo.ShortURLGetByUserID(context.Background(), 2)
+	suite.NoError(err)
+	suite.Nil(urls)
 }
 
 func (suite *memoryRepoSuite) Test_autoIncrement() {

@@ -37,7 +37,6 @@ func (r *MemoryRepo) UserCreate(_ context.Context, user *models.User) error {
 		return ErrDuplicate
 	}
 	r.users[user.ID] = *user
-	r.userShortURLs[user.ID] = []string{}
 	return nil
 }
 
@@ -78,14 +77,13 @@ func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.Shor
 }
 
 // ShortURLGetByUserID - возвращает список коротких ссылок пользователя.
-// Если пользователь не существует, возвращает ошибку ErrNotFound.
-// Если у пользователя нет коротких ссылок, возвращает пустой слайс.
+// Если пользователь не найден, или у пользователя нет ссылок возвращает nil.
 func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]models.ShortURL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	index, ok := r.userShortURLs[userID]
 	if !ok {
-		return nil, ErrNotFound
+		return nil, nil
 	}
 	result := make([]models.ShortURL, len(index))
 	for i, id := range index {
