@@ -129,16 +129,16 @@ var _ = Describe("API POST /shorten/batch", func() {
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 			resJSON := make([]struct {
 				CorrelationID string `json:"correlation_id"`
-				Result        string `json:"result"`
+				ShortURL      string `json:"short_url"`
 			}, 0)
 			Expect(json.Unmarshal(resBody, &resJSON)).Should(Succeed())
 			Expect(resJSON).Should(HaveLen(3))
 			Expect(resJSON[0].CorrelationID).Should(Equal("1"))
-			Expect(resJSON[0].Result).ShouldNot(BeEmpty())
+			Expect(resJSON[0].ShortURL).ShouldNot(BeEmpty())
 			Expect(resJSON[1].CorrelationID).Should(Equal("2"))
-			Expect(resJSON[1].Result).ShouldNot(BeEmpty())
+			Expect(resJSON[1].ShortURL).ShouldNot(BeEmpty())
 			Expect(resJSON[2].CorrelationID).Should(Equal("3"))
-			Expect(resJSON[2].Result).ShouldNot(BeEmpty())
+			Expect(resJSON[2].ShortURL).ShouldNot(BeEmpty())
 		})
 	})
 })

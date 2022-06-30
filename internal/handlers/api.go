@@ -79,7 +79,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 //    [
 //        {
 //            "correlation_id": "<строковый идентификатор из объекта запроса>",
-//            "result": "<shorten_url>"
+//            "short_url": "<shorten_url>"
 //        },
 //        ...
 //    ]
@@ -92,7 +92,7 @@ func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request)
 	// Структура элемента ответа
 	type resType struct {
 		CorrelationID string `json:"correlation_id"`
-		Result        string `json:"result"`
+		ShortURL      string `json:"short_url"`
 	}
 
 	// Проверяем аутентифицирован ли пользователь
@@ -118,7 +118,7 @@ func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request)
 		}
 		resJSON[i] = resType{
 			CorrelationID: item.CorrelationID,
-			Result:        h.srv.ShortURLService.Resolve(shortURL.ID),
+			ShortURL:      h.srv.ShortURLService.Resolve(shortURL.ID),
 		}
 	}
 
