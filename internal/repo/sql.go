@@ -10,6 +10,12 @@ import (
 
 type SQLRepo struct {
 	db *sql.DB
+	// Заранее подготовленные запросы к БД
+	userCreateStmt          *sql.Stmt
+	userGetByIDStmt         *sql.Stmt
+	shortURLCreateStmt      *sql.Stmt
+	shortURLGetByIDStmt     *sql.Stmt
+	shortURLGetByUserIDStmt *sql.Stmt
 }
 
 func MustNewSQLRepo(dsn string) *SQLRepo {
@@ -29,6 +35,9 @@ func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	if err = r.migrate(); err != nil {
 		return nil, err
 	}
+	if err = r.prepareStatements(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -44,14 +53,66 @@ func (r *SQLRepo) migrate() error {
 	}
 	_, err = r.db.Exec(`
 		CREATE TABLE IF NOT EXISTS short_urls (
-			id VARCHAR(127) PRIMARY KEY,
-			original_url VARCHAR(4096) NOT NULL,
+			id TEXT PRIMARY KEY,
+			original_url TEXT NOT NULL,
 			user_id INTEGER NOT NULL,
 			FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 		)
 	`)
 
 	return err
+}
+
+// prepareStatements - подготавливает запросы к БД
+func (r *SQLRepo) prepareStatements() error {
+	if r.db == nil {
+		return ErrDBNotInitialized
+	}
+
+	var err error
+
+	r.userCreateStmt, err = r.db.Prepare(`
+		INSERT INTO users (id)
+		VALUES (DEFAULT)
+		RETURNING id
+	`)
+	if err != nil {
+		return err
+	}
+
+	r.userGetByIDStmt, err = r.db.Prepare(`
+		SELECT id FROM users 
+	  	WHERE id = $1
+	`)
+	if err != nil {
+		return err
+	}
+
+	r.shortURLCreateStmt, err = r.db.Prepare(`
+		INSERT INTO short_urls (id, original_url, user_id)
+		VALUES ($1, $2, $3)
+	`)
+	if err != nil {
+		return err
+	}
+
+	r.shortURLGetByIDStmt, err = r.db.Prepare(`
+		SELECT id, original_url, user_id FROM short_urls 
+		WHERE id = $1
+	`)
+	if err != nil {
+		return err
+	}
+
+	r.shortURLGetByUserIDStmt, err = r.db.Prepare(`
+		SELECT id, original_url, user_id FROM short_urls 
+		WHERE user_id = $1
+	`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DB - возвращает подключение к базе данных
@@ -69,19 +130,19 @@ func (r *SQLRepo) Close() error {
 
 // UserCreate - добавляет нового пользователя в репозиторий.
 func (r *SQLRepo) UserCreate(ctx context.Context, user *models.User) error {
-	err := r.db.QueryRowContext(ctx, `
-		INSERT INTO users (id)
-		VALUES (DEFAULT)
-		RETURNING id
-	`).Scan(&user.ID)
+	if r.db == nil {
+		return ErrDBNotInitialized
+	}
+	err := r.userCreateStmt.QueryRowContext(ctx).Scan(&user.ID)
 	return err
 }
 
 // UserGetByID - возвращает пользователя по его id.
 func (r *SQLRepo) UserGetByID(ctx context.Context, id uint) (*models.User, error) {
-	rows, err := r.db.QueryContext(ctx, `
-		SELECT id FROM users 
-	  	WHERE id = $1`, id)
+	if r.db == nil {
+		return nil, ErrDBNotInitialized
+	}
+	rows, err := r.userGetByIDStmt.QueryContext(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -102,10 +163,10 @@ func (r *SQLRepo) UserGetByID(ctx context.Context, id uint) (*models.User, error
 
 // ShortURLCreate - добавляет новую сокращенную ссылку в репозиторий.
 func (r *SQLRepo) ShortURLCreate(ctx context.Context, url *models.ShortURL) error {
-	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO short_urls (id, original_url, user_id)
-		VALUES ($1, $2, $3)
-	`, url.ID, url.OriginalURL, url.UserID)
+	if r.db == nil {
+		return ErrDBNotInitialized
+	}
+	_, err := r.shortURLCreateStmt.ExecContext(ctx, url.ID, url.OriginalURL, url.UserID)
 	if err != nil {
 		return err
 	}
@@ -114,10 +175,10 @@ func (r *SQLRepo) ShortURLCreate(ctx context.Context, url *models.ShortURL) erro
 
 // ShortURLGetByID - возвращает сокращенную ссылку по ее id.
 func (r *SQLRepo) ShortURLGetByID(ctx context.Context, id string) (*models.ShortURL, error) {
-	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, original_url, user_id FROM short_urls 
-		WHERE id = $1
-		`, id)
+	if r.db == nil {
+		return nil, ErrDBNotInitialized
+	}
+	rows, err := r.shortURLGetByIDStmt.QueryContext(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +200,10 @@ func (r *SQLRepo) ShortURLGetByID(ctx context.Context, id string) (*models.Short
 // ShortURLGetByUserID - возвращает сокращенные ссылки пользователя.
 // Если пользователь не найден, или у пользователя нет ссылок возвращает nil.
 func (r *SQLRepo) ShortURLGetByUserID(ctx context.Context, id uint) ([]models.ShortURL, error) {
-	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, original_url, user_id FROM short_urls 
-		WHERE user_id = $1
-		`, id)
+	if r.db == nil {
+		return nil, ErrDBNotInitialized
+	}
+	rows, err := r.shortURLGetByUserIDStmt.QueryContext(ctx, id)
 	if err != nil {
 		return nil, err
 	}
