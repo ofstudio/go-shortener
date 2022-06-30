@@ -21,6 +21,7 @@ func NewAPIHandlers(srv *services.Container) *APIHandlers {
 func (h APIHandlers) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/shorten", h.createShortURL)
+	r.Post("/shorten/batch", h.createBatchShortURL)
 	r.Get("/user/urls", h.getUserURLs)
 	return r
 }
@@ -48,13 +49,13 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Читаем body запроса
-	reqBody := reqType{}
-	if err := parseJSONRequest(r, &reqBody); err != nil {
+	reqJSON := reqType{}
+	if err := parseJSONRequest(r, &reqJSON); err != nil {
 		respondWithError(w, err)
 	}
 
 	// Создаем сокращенную ссылку
-	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, reqBody.URL)
+	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, reqJSON.URL)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -64,6 +65,65 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w,
 		http.StatusCreated,
 		resType{Result: h.srv.ShortURLService.Resolve(shortURL.ID)})
+}
+
+// createBatchShortURL - принимает в теле запроса список строк URL для сокращения:
+//    [
+//        {
+//            "correlation_id": "<строковый идентификатор>",
+//            "original_url": "<URL для сокращения>"
+//        },
+//        ...
+//    ]
+// Возвращает ответ http.StatusCreated (201) и сокращенный URL в виде JSON:
+//    [
+//        {
+//            "correlation_id": "<строковый идентификатор из объекта запроса>",
+//            "result": "<shorten_url>"
+//        },
+//        ...
+//    ]
+func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request) {
+	// Структура элемента запроса
+	type reqType struct {
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
+	}
+	// Структура элемента ответа
+	type resType struct {
+		CorrelationID string `json:"correlation_id"`
+		Result        string `json:"result"`
+	}
+
+	// Проверяем аутентифицирован ли пользователь
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		respondWithError(w, ErrAuth)
+		return
+	}
+
+	// Читаем body запроса
+	reqJSON := make([]reqType, 0)
+	if err := parseJSONRequest(r, &reqJSON); err != nil {
+		respondWithError(w, err)
+	}
+
+	// Создаем сокращенные ссылки
+	resJSON := make([]resType, len(reqJSON))
+	for i, item := range reqJSON {
+		shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, item.OriginalURL)
+		if err != nil {
+			respondWithError(w, err)
+			return
+		}
+		resJSON[i] = resType{
+			CorrelationID: item.CorrelationID,
+			Result:        h.srv.ShortURLService.Resolve(shortURL.ID),
+		}
+	}
+
+	// Возвращаем ответ
+	respondWithJSON(w, http.StatusCreated, resJSON)
 }
 
 // getUserURLs - возвращает список сокращенных ссылок пользователя.

@@ -96,6 +96,53 @@ var _ = Describe("API POST /shorten ", func() {
 	})
 })
 
+var _ = Describe("API POST /shorten/batch", func() {
+	var server *ghttp.Server
+	cfg := &config.DefaultConfig
+	repository := repo.NewMemoryRepo()
+	srv := services.NewContainer(cfg, repository)
+
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+		cfg.BaseURL = testParseURL(server.URL() + "/")
+		r := chi.NewRouter()
+		r.Use(middleware.NewAuthCookie(srv).Handler)
+		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
+		server.AppendHandlers(r.ServeHTTP)
+	})
+	AfterEach(func() {
+		server.Close()
+	})
+
+	When("valid json sent", func() {
+		It("should successfully create short urls", func() {
+			body := `[
+				{"correlation_id":"1","original_url":"https://www.google.com"},
+				{"correlation_id":"2","original_url":"https://www.amazon.com"},
+				{"correlation_id":"3","original_url":"https://www.facebook.com"}
+			]`
+			res := testHTTPRequest("POST", server.URL()+"/shorten/batch", "application/json", body)
+			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
+			resBody, err := ioutil.ReadAll(res.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+			resJSON := make([]struct {
+				CorrelationID string `json:"correlation_id"`
+				Result        string `json:"result"`
+			}, 0)
+			Expect(json.Unmarshal(resBody, &resJSON)).Should(Succeed())
+			Expect(resJSON).Should(HaveLen(3))
+			Expect(resJSON[0].CorrelationID).Should(Equal("1"))
+			Expect(resJSON[0].Result).ShouldNot(BeEmpty())
+			Expect(resJSON[1].CorrelationID).Should(Equal("2"))
+			Expect(resJSON[1].Result).ShouldNot(BeEmpty())
+			Expect(resJSON[2].CorrelationID).Should(Equal("3"))
+			Expect(resJSON[2].Result).ShouldNot(BeEmpty())
+		})
+	})
+})
+
 var _ = Describe("API GET /user/urls", func() {
 	var server *ghttp.Server
 	cfg := &config.DefaultConfig
