@@ -79,20 +79,23 @@ func (r *SQLRepo) UserCreate(ctx context.Context, user *models.User) error {
 
 // UserGetByID - возвращает пользователя по его id.
 func (r *SQLRepo) UserGetByID(ctx context.Context, id uint) (*models.User, error) {
-	row, err := r.db.QueryContext(ctx, `
+	rows, err := r.db.QueryContext(ctx, `
 		SELECT id FROM users 
 	  	WHERE id = $1`, id)
 	if err != nil {
 		return nil, err
 	}
 	//goland:noinspection GoUnhandledErrorResult
-	defer row.Close()
-	if !row.Next() {
+	defer rows.Close()
+	if !rows.Next() {
 		return nil, ErrNotFound
 	}
 	var u models.User
-	if err = row.Scan(&u.ID); err != nil {
+	if err = rows.Scan(&u.ID); err != nil {
 		return nil, err
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 	return &u, nil
 }
@@ -111,7 +114,7 @@ func (r *SQLRepo) ShortURLCreate(ctx context.Context, url *models.ShortURL) erro
 
 // ShortURLGetByID - возвращает сокращенную ссылку по ее id.
 func (r *SQLRepo) ShortURLGetByID(ctx context.Context, id string) (*models.ShortURL, error) {
-	row, err := r.db.QueryContext(ctx, `
+	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, original_url, user_id FROM short_urls 
 		WHERE id = $1
 		`, id)
@@ -119,13 +122,16 @@ func (r *SQLRepo) ShortURLGetByID(ctx context.Context, id string) (*models.Short
 		return nil, err
 	}
 	//goland:noinspection GoUnhandledErrorResult
-	defer row.Close()
-	if !row.Next() {
+	defer rows.Close()
+	if !rows.Next() {
 		return nil, ErrNotFound
 	}
 	var u models.ShortURL
-	if err = row.Scan(&u.ID, &u.OriginalURL, &u.UserID); err != nil {
+	if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID); err != nil {
 		return nil, err
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 	return &u, nil
 }
@@ -149,6 +155,9 @@ func (r *SQLRepo) ShortURLGetByUserID(ctx context.Context, id uint) ([]models.Sh
 			return nil, err
 		}
 		urls = append(urls, u)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 	return urls, nil
 }
