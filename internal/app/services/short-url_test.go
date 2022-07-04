@@ -63,9 +63,9 @@ func (suite *shortURLServiceSuite) TestCreate() {
 	})
 
 	suite.Run("duplicate url", func() {
-		_, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		_, err := suite.ShortURLService.Create(context.Background(), 1, "https://duplicate.com")
 		suite.NoError(err)
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://duplicate.com")
 		suite.Equal(ErrDuplicate, err)
 	})
 }

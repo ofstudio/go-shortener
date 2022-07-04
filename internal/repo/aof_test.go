@@ -98,7 +98,7 @@ func (suite *aofRepoSuite) TestAOFRepo_ShortURLCreate() {
 
 	// Пытаемся записать в закрытый репозиторий
 	suite.NoError(repo2.Close())
-	suite.Equal(ErrAOFWrite, repo2.ShortURLCreate(context.Background(), &models.ShortURL{ID: "xyz123", OriginalURL: "https://www.ya.ru", UserID: 1000}))
+	suite.Equal(ErrAOFWrite, repo2.ShortURLCreate(context.Background(), &models.ShortURL{ID: "xyz123", OriginalURL: "https://www.closed.ru", UserID: 1000}))
 	// Проверяем, что сокращенная ссылка не записана в репозиторий
 	_, err = repo2.ShortURLGetByID(context.Background(), "xyz123")
 	suite.Equal(ErrNotFound, err)
