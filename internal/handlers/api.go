@@ -53,6 +53,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	reqJSON := reqType{}
 	if err := parseJSONRequest(r, &reqJSON); err != nil {
 		respondWithError(w, err)
+		return
 	}
 
 	// Создаем сокращенную ссылку
@@ -115,6 +116,7 @@ func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request)
 	reqJSON := make([]reqType, 0)
 	if err := parseJSONRequest(r, &reqJSON); err != nil {
 		respondWithError(w, err)
+		return
 	}
 
 	// Создаем сокращенные ссылки
@@ -204,6 +206,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, err := json.Marshal(payload)
 	if err != nil {
 		respondWithError(w, err)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
