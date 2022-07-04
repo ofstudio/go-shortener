@@ -60,11 +60,12 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	originalURL := string(b)
-
+	statusCode := http.StatusCreated
 	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, originalURL)
 
 	// Если ссылка уже существует, возвращаем её
 	if errors.Is(err, services.ErrDuplicate) {
+		statusCode = http.StatusConflict
 		shortURL, err = h.srv.ShortURLService.GetByOriginalURL(r.Context(), originalURL)
 	}
 
@@ -74,7 +75,7 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(statusCode)
 	_, _ = w.Write([]byte(h.srv.ShortURLService.Resolve(shortURL.ID)))
 }
 

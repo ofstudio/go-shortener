@@ -56,10 +56,12 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Создаем сокращенную ссылку
+	statusCode := http.StatusCreated
 	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, reqJSON.URL)
 
 	// Если ссылка уже существует, запрашиваем ее
 	if errors.Is(err, services.ErrDuplicate) {
+		statusCode = http.StatusConflict
 		shortURL, err = h.srv.ShortURLService.GetByOriginalURL(r.Context(), reqJSON.URL)
 	}
 
@@ -70,7 +72,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 
 	// Возвращаем ответ
 	respondWithJSON(w,
-		http.StatusCreated,
+		statusCode,
 		resType{Result: h.srv.ShortURLService.Resolve(shortURL.ID)})
 }
 
