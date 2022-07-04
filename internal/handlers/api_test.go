@@ -98,8 +98,16 @@ var _ = Describe("API POST /shorten ", func() {
 		It("should return 409", func() {
 			res1 := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.duplicate.com"}`)
 			Expect(res1.StatusCode).Should(Equal(http.StatusCreated))
+			resBody1, err := ioutil.ReadAll(res1.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			_ = res1.Body.Close()
+
 			res2 := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.duplicate.com"}`)
 			Expect(res2.StatusCode).Should(Equal(http.StatusConflict))
+			resBody2, err := ioutil.ReadAll(res2.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			_ = res2.Body.Close()
+			Expect(resBody1).Should(MatchJSON(resBody2))
 		})
 	})
 })

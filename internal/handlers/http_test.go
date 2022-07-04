@@ -99,10 +99,17 @@ var _ = Describe("shortURL handlers", func() {
 
 	When("duplicate url sent", func() {
 		It("returns 409 error", func() {
-			res := testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
-			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
-			res = testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
-			Expect(res.StatusCode).Should(Equal(http.StatusConflict))
+			res1 := testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
+			Expect(res1.StatusCode).Should(Equal(http.StatusCreated))
+			resBody1, err := ioutil.ReadAll(res1.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			_ = res1.Body.Close()
+			res2 := testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
+			Expect(res2.StatusCode).Should(Equal(http.StatusConflict))
+			resBody2, err := ioutil.ReadAll(res2.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			_ = res2.Body.Close()
+			Expect(string(resBody1)).Should(Equal(string(resBody2)))
 		})
 	})
 
