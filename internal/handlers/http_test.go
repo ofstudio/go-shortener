@@ -30,7 +30,7 @@ var _ = Describe("shortURL handlers", func() {
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
 		r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
-		server.AppendHandlers(r.ServeHTTP)
+		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 
 	AfterEach(func() {
@@ -94,6 +94,15 @@ var _ = Describe("shortURL handlers", func() {
 		It("returns 404 error", func() {
 			res := testHTTPRequest("GET", server.URL()+"/123", "", "")
 			Expect(res.StatusCode).Should(Equal(http.StatusNotFound))
+		})
+	})
+
+	When("duplicate url sent", func() {
+		It("returns 409 error", func() {
+			res := testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
+			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+			res = testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
+			Expect(res.StatusCode).Should(Equal(http.StatusConflict))
 		})
 	})
 

@@ -29,7 +29,7 @@ var _ = Describe("API POST /shorten ", func() {
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
 		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
-		server.AppendHandlers(r.ServeHTTP)
+		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 
 	AfterEach(func() {
@@ -92,6 +92,14 @@ var _ = Describe("API POST /shorten ", func() {
 		It("should return 400", func() {
 			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/xml", `{"url":"https://www.google.com"}`)
 			Expect(res.StatusCode).Should(Equal(http.StatusBadRequest))
+		})
+	})
+	When("duplicate url sent", func() {
+		It("should return 409", func() {
+			res1 := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.duplicate.com"}`)
+			Expect(res1.StatusCode).Should(Equal(http.StatusCreated))
+			res2 := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.duplicate.com"}`)
+			Expect(res2.StatusCode).Should(Equal(http.StatusConflict))
 		})
 	})
 })

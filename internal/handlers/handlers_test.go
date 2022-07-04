@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestCompressorSuite(t *testing.T) {
+func TestHandlersSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Handlers Suite")
 }
