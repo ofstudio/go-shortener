@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
@@ -58,7 +59,15 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, string(b))
+	originalURL := string(b)
+
+	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, originalURL)
+
+	// Если ссылка уже существует, возвращаем её
+	if errors.Is(err, services.ErrDuplicate) {
+		shortURL, err = h.srv.ShortURLService.GetByOriginalURL(r.Context(), originalURL)
+	}
+
 	if err != nil {
 		respondWithError(w, err)
 		return

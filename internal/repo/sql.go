@@ -3,6 +3,8 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"log"
@@ -16,6 +18,7 @@ type SQLRepo struct {
 	shortURLCreateStmt      *sql.Stmt
 	shortURLGetByIDStmt     *sql.Stmt
 	shortURLGetByUserIDStmt *sql.Stmt
+	shortURLGetByURLStmt    *sql.Stmt
 }
 
 func MustNewSQLRepo(dsn string) *SQLRepo {
@@ -39,28 +42,6 @@ func NewSQLRepo(dsn string) (*SQLRepo, error) {
 		return nil, err
 	}
 	return r, nil
-}
-
-// migrate - создает таблицы в базе данных
-func (r *SQLRepo) migrate() error {
-	_, err := r.db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY
-		)
-`)
-	if err != nil {
-		return err
-	}
-	_, err = r.db.Exec(`
-		CREATE TABLE IF NOT EXISTS short_urls (
-			id TEXT PRIMARY KEY,
-			original_url TEXT NOT NULL,
-			user_id INTEGER NOT NULL,
-			FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-		)
-	`)
-
-	return err
 }
 
 // prepareStatements - подготавливает запросы к БД
@@ -107,6 +88,14 @@ func (r *SQLRepo) prepareStatements() error {
 	r.shortURLGetByUserIDStmt, err = r.db.Prepare(`
 		SELECT id, original_url, user_id FROM short_urls 
 		WHERE user_id = $1
+	`)
+	if err != nil {
+		return err
+	}
+
+	r.shortURLGetByURLStmt, err = r.db.Prepare(`
+		SELECT id, original_url, user_id FROM short_urls
+		WHERE original_url = $1
 	`)
 	if err != nil {
 		return err
@@ -167,10 +156,11 @@ func (r *SQLRepo) ShortURLCreate(ctx context.Context, url *models.ShortURL) erro
 		return ErrDBNotInitialized
 	}
 	_, err := r.shortURLCreateStmt.ExecContext(ctx, url.ID, url.OriginalURL, url.UserID)
-	if err != nil {
-		return err
+
+	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+		return ErrDuplicate
 	}
-	return nil
+	return err
 }
 
 // ShortURLGetByID - возвращает сокращенную ссылку по ее id.
@@ -221,4 +211,29 @@ func (r *SQLRepo) ShortURLGetByUserID(ctx context.Context, id uint) ([]models.Sh
 		return nil, rows.Err()
 	}
 	return urls, nil
+}
+
+// ShortURLGetByOriginalURL - возвращает сокращенную ссылку по ее оригинальному url.
+func (r *SQLRepo) ShortURLGetByOriginalURL(ctx context.Context, s string) (*models.ShortURL, error) {
+	if r.db == nil {
+		return nil, ErrDBNotInitialized
+	}
+	rows, err := r.shortURLGetByURLStmt.QueryContext(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, ErrNotFound
+	}
+	var u models.ShortURL
+	if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID); err != nil {
+		return nil, err
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	return &u, nil
 }

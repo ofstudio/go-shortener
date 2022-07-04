@@ -71,6 +71,15 @@ func (suite *sqlRepoSuite) TestShortURLCreate() {
 	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
 }
 
+func (suite *sqlRepoSuite) TestShortURLCreate_Duplicate() {
+	user := &models.User{}
+	suite.NoError(suite.repo.UserCreate(context.Background(), user))
+	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
+	err := suite.repo.ShortURLCreate(context.Background(), shortURL)
+	suite.Equal(ErrDuplicate, err)
+}
+
 func (suite *sqlRepoSuite) TestShortURLGetByID() {
 	user := &models.User{}
 	suite.NoError(suite.repo.UserCreate(context.Background(), user))
@@ -91,7 +100,7 @@ func (suite *sqlRepoSuite) TestShortURLGetByUserID() {
 	suite.NoError(suite.repo.UserCreate(context.Background(), user))
 	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
 	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
-	shortURL2 := &models.ShortURL{ID: "bbb", OriginalURL: "https://example.com", UserID: user.ID}
+	shortURL2 := &models.ShortURL{ID: "bbb", OriginalURL: "https://another.com", UserID: user.ID}
 	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL2))
 	shortURLs, err := suite.repo.ShortURLGetByUserID(context.Background(), user.ID)
 	suite.NoError(err)
@@ -110,6 +119,21 @@ func (suite *sqlRepoSuite) TestShortURLGetByUserID_NoURLs() {
 	urls, err := suite.repo.ShortURLGetByUserID(context.Background(), user.ID)
 	suite.NoError(err)
 	suite.Nil(urls)
+}
+
+func (suite *sqlRepoSuite) TestShortURLGetByURL() {
+	user := &models.User{}
+	suite.NoError(suite.repo.UserCreate(context.Background(), user))
+	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
+	shortURL2, err := suite.repo.ShortURLGetByOriginalURL(context.Background(), shortURL.OriginalURL)
+	suite.NoError(err)
+	suite.Equal(shortURL, shortURL2)
+}
+
+func (suite *sqlRepoSuite) TestShortURLGetByURL_NotFound() {
+	_, err := suite.repo.ShortURLGetByOriginalURL(context.Background(), "https://example.com")
+	suite.Equal(ErrNotFound, err)
 }
 
 func testIsDBAvailable(dsn string) bool {

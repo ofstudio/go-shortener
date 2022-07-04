@@ -61,6 +61,13 @@ func (suite *shortURLServiceSuite) TestCreate() {
 		_, err := suite.ShortURLService.Create(context.Background(), 100, "https://google.com")
 		suite.Equal(ErrNotFound, err)
 	})
+
+	suite.Run("duplicate url", func() {
+		_, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		suite.NoError(err)
+		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		suite.Equal(ErrDuplicate, err)
+	})
 }
 
 func (suite *shortURLServiceSuite) TestGetByID() {
@@ -113,6 +120,27 @@ func (suite *shortURLServiceSuite) TestGetByUserID() {
 		urls, err := suite.ShortURLService.GetByUserID(context.Background(), 100)
 		suite.NoError(err)
 		suite.Nil(urls)
+	})
+}
+
+func (suite *shortURLServiceSuite) TestGetByOriginalURL() {
+	// Успешное получение короткой ссылки по оригинальной
+	suite.Run("success", func() {
+		shortURL, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		suite.NoError(err)
+		suite.NotNil(shortURL)
+		shortURL, err = suite.ShortURLService.GetByOriginalURL(context.Background(), "https://google.com")
+		suite.NoError(err)
+		suite.NotNil(shortURL)
+		suite.Equal("https://google.com", shortURL.OriginalURL)
+		suite.Equal(1, int(shortURL.UserID))
+		suite.NotEmpty(shortURL.ID)
+	})
+
+	// Несуществующая оригинальная ссылка
+	suite.Run("not found", func() {
+		_, err := suite.ShortURLService.GetByOriginalURL(context.Background(), "not found")
+		suite.Equal(ErrNotFound, err)
 	})
 }
 

@@ -8,19 +8,21 @@ import (
 
 // MemoryRepo - реализация Repo для хранения данных в памяти.
 type MemoryRepo struct {
-	shortURLs     map[string]models.ShortURL
-	users         map[uint]models.User
-	userShortURLs map[uint][]string
-	nextUserID    uint
-	mu            sync.RWMutex
+	shortURLs      map[string]models.ShortURL
+	users          map[uint]models.User
+	userShortURLs  map[uint][]string
+	originalURLIdx map[string]string
+	nextUserID     uint
+	mu             sync.RWMutex
 }
 
 func NewMemoryRepo() *MemoryRepo {
 	return &MemoryRepo{
-		shortURLs:     make(map[string]models.ShortURL),
-		users:         make(map[uint]models.User),
-		userShortURLs: make(map[uint][]string),
-		nextUserID:    1,
+		shortURLs:      make(map[string]models.ShortURL),
+		users:          make(map[uint]models.User),
+		userShortURLs:  make(map[uint][]string),
+		originalURLIdx: make(map[string]string),
+		nextUserID:     1,
 	}
 }
 
@@ -61,8 +63,12 @@ func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL
 	if _, exist := r.shortURLs[shortURL.ID]; exist {
 		return ErrDuplicate
 	}
+	if _, exist := r.originalURLIdx[shortURL.OriginalURL]; exist {
+		return ErrDuplicate
+	}
 	r.shortURLs[shortURL.ID] = *shortURL
 	r.userShortURLs[shortURL.UserID] = append(r.userShortURLs[shortURL.UserID], shortURL.ID)
+	r.originalURLIdx[shortURL.OriginalURL] = shortURL.ID
 	return nil
 }
 
@@ -92,6 +98,18 @@ func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]mode
 	return result, nil
 }
 
+// ShortURLGetByOriginalURL - возвращает сокращенную ссылку по ее оригинальному url.
+func (r *MemoryRepo) ShortURLGetByOriginalURL(_ context.Context, originalURL string) (*models.ShortURL, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if id, ok := r.originalURLIdx[originalURL]; ok {
+		if shortURL, ok := r.shortURLs[id]; ok {
+			return &shortURL, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
 // Close - закрывает репозиторий для записи.
 // В этой реализации не делает ничего.
 func (r *MemoryRepo) Close() error {
@@ -117,6 +135,7 @@ func (r *MemoryRepo) shortURLDelete(id string) {
 		userID := shortURL.UserID
 		r.userShortURLs[userID] = findAndDelete(r.userShortURLs[userID], shortURL.ID)
 		// Удаляем короткую ссылку
+		delete(r.originalURLIdx, shortURL.OriginalURL)
 		delete(r.shortURLs, id)
 	}
 }

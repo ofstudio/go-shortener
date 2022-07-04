@@ -41,10 +41,14 @@ func (s ShortURLService) Create(ctx context.Context, userID uint, OriginalURL st
 		OriginalURL: OriginalURL,
 		UserID:      userID,
 	}
-	if err = s.repo.ShortURLCreate(ctx, shortURL); err != nil {
+	err = s.repo.ShortURLCreate(ctx, shortURL)
+
+	// Если такой URL уже существует, возвращаем ErrDuplicate
+	if errors.Is(err, repo.ErrDuplicate) {
+		return nil, ErrDuplicate
+	} else if err != nil {
 		return nil, ErrInternal
 	}
-
 	// Возвращаем модель
 	return shortURL, nil
 }
@@ -69,6 +73,17 @@ func (s ShortURLService) GetByUserID(ctx context.Context, id uint) ([]models.Sho
 		return nil, ErrInternal
 	}
 	return shortURLs, nil
+}
+
+// GetByOriginalURL - возвращает ShortURL по его оригинальному URL
+func (s ShortURLService) GetByOriginalURL(ctx context.Context, rawURL string) (*models.ShortURL, error) {
+	shortURL, err := s.repo.ShortURLGetByOriginalURL(ctx, rawURL)
+	if errors.Is(err, repo.ErrNotFound) {
+		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, ErrInternal
+	}
+	return shortURL, nil
 }
 
 func (s ShortURLService) Resolve(id string) string {

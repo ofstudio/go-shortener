@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
@@ -56,6 +57,12 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 
 	// Создаем сокращенную ссылку
 	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, reqJSON.URL)
+
+	// Если ссылка уже существует, запрашиваем ее
+	if errors.Is(err, services.ErrDuplicate) {
+		shortURL, err = h.srv.ShortURLService.GetByOriginalURL(r.Context(), reqJSON.URL)
+	}
+
 	if err != nil {
 		respondWithError(w, err)
 		return
