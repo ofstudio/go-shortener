@@ -2,6 +2,7 @@ package main
 
 import (
 	"compress/gzip"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/ofstudio/go-shortener/internal/app/config"
@@ -67,7 +68,7 @@ func main() {
 	log.Printf("Starting http server at %s", cfg.ServerAddress)
 	err := server.ListenAndServe()
 
-	if err == http.ErrServerClosed {
+	if errors.Is(err, http.ErrServerClosed) {
 		log.Println("Http server stopped. Exiting...")
 	} else if err != nil {
 		log.Fatalf("Http server error: %v", err)

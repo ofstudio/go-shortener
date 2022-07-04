@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"io"
 	"log"
@@ -104,7 +105,7 @@ func loadRepoFromFile(aofPath string) (*MemoryRepo, error) {
 	for {
 		record := &aofRecord{}
 		err = decoder.Decode(record)
-		if err == io.EOF { // Конец файла
+		if errors.Is(err, io.EOF) { // Конец файла
 			break
 		} else if err != nil { // Ошибка чтения
 			return nil, ErrAOFRead

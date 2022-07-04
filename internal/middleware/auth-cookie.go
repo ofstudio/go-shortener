@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"net"
@@ -72,7 +73,7 @@ func (m *AuthCookie) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(authCookieName)
 		// Если кука не найдена - устанавливаем куку и передаем обработку запроса дальше
-		if err == http.ErrNoCookie || cookie == nil {
+		if errors.Is(err, http.ErrNoCookie) || cookie == nil {
 			m.setCookie(w, r, next)
 			return
 		}
@@ -80,7 +81,7 @@ func (m *AuthCookie) Handler(next http.Handler) http.Handler {
 		// Проверяем подпись куки
 		userID, err := m.verifyToken(cookie.Value)
 		// Если подпись не совпадает - устанавливаем куку и передаем обработку запроса дальше
-		if err == ErrInvalidToken {
+		if errors.Is(err, ErrInvalidToken) {
 			m.setCookie(w, r, next)
 			return
 		} else if err != nil {
