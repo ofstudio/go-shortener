@@ -21,18 +21,18 @@ func NewAPIHandlers(srv *services.Container) *APIHandlers {
 
 func (h APIHandlers) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/shorten", h.createShortURL)
-	r.Post("/shorten/batch", h.createBatchShortURL)
-	r.Get("/user/urls", h.getUserURLs)
+	r.Post("/shorten", h.shortURLCreate)
+	r.Post("/shorten/batch", h.shortURLBatchCreate)
+	r.Get("/user/urls", h.shortURLGetByUserID)
 	return r
 }
 
-// createShortURL - принимает в теле запроса строку URL для сокращения:
+// shortURLCreate - принимает в теле запроса строку URL для сокращения:
 //    {"url":"<url>"}
 //
 // Возвращает ответ http.StatusCreated (201) и сокращенный URL в виде JSON:
 //    {"result":"<shorten_url>"}
-func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
+func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	// Структура запроса
 	type reqType struct {
 		URL string `json:"url"`
@@ -77,7 +77,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 		resType{Result: h.srv.ShortURLService.Resolve(shortURL.ID)})
 }
 
-// createBatchShortURL - принимает в теле запроса список строк URL для сокращения:
+// shortURLBatchCreate - принимает в теле запроса список строк URL для сокращения:
 //    [
 //        {
 //            "correlation_id": "<строковый идентификатор>",
@@ -93,7 +93,7 @@ func (h APIHandlers) createShortURL(w http.ResponseWriter, r *http.Request) {
 //        },
 //        ...
 //    ]
-func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request) {
+func (h APIHandlers) shortURLBatchCreate(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
 	type reqType struct {
 		CorrelationID string `json:"correlation_id"`
@@ -137,7 +137,7 @@ func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request)
 	respondWithJSON(w, http.StatusCreated, resJSON)
 }
 
-// getUserURLs - возвращает список сокращенных ссылок пользователя.
+// shortURLGetByUserID - возвращает список сокращенных ссылок пользователя.
 // Формат ответа:
 //    [
 //        {
@@ -146,7 +146,7 @@ func (h APIHandlers) createBatchShortURL(w http.ResponseWriter, r *http.Request)
 //        },
 //        ...
 //    ]
-func (h APIHandlers) getUserURLs(w http.ResponseWriter, r *http.Request) {
+func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request) {
 	// Структура ответа
 	type resType struct {
 		ShortURL    string `json:"short_url"`
