@@ -8,45 +8,37 @@ import (
 )
 
 // validate - проверяет конфигурацию на валидность
-func validate(cfg *Config, err error) (*Config, error) {
-	// Если from...-функция завершилась с ошибкой, возвращаем ошибку
-	if err != nil {
+func validate(cfg *Config) (*Config, error) {
+	var err error
+	// Валидируем базовый AuthSecret
+	if err = validateAuthSecret(cfg.AuthSecret); err != nil {
 		return nil, err
 	}
 	// Валидируем базовый URL
-	if err = validateBaseURL(cfg.BaseURL); err != nil {
+	if err = validateBaseURL(&cfg.BaseURL); err != nil {
 		return nil, err
 	}
-	// Добавляем слеш в конец базового URL
-	cfg.BaseURL = normalizeBaseURL(cfg.BaseURL)
-	// Валидный адрес для запуска HTTP-сервера
+	// Валидируем адрес для запуска HTTP-сервера
 	if err = validateServerAddr(cfg.ServerAddress); err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
 
-// normalizeBaseURL - нормализует базовый адрес сокращённого URL.
-// Добавляет слеш в конце, если его нет.
-func normalizeBaseURL(baseURL string) string {
-	if !strings.HasSuffix(baseURL, "/") {
-		baseURL += "/"
-	}
-	return baseURL
-}
-
 // validateBaseURL - проверяет базовый адрес сокращённого URL.
-// Возвращает ошибку если URL содержит параметры, а также если URL пустой или невалидный.
-func validateBaseURL(baseURL string) error {
-	if baseURL == "" {
-		return fmt.Errorf("empty base URL")
+// Возвращает ошибку в случае:
+//    - URL не содержит протокол http или https
+//    - URL содержит параметры или фрагмент.
+// Добавляет слеш в конце Path, если его нет.
+func validateBaseURL(baseURL *url.URL) error {
+	if baseURL.RawQuery != "" || baseURL.Fragment != "" {
+		return fmt.Errorf("base URL must not contain query parameters or fragment")
 	}
-	u, err := url.ParseRequestURI(baseURL)
-	if err != nil {
-		return fmt.Errorf("invalid base URL")
+	if baseURL.Scheme != "http" && baseURL.Scheme != "https" {
+		return fmt.Errorf("base URL must use http or https scheme")
 	}
-	if u.RawQuery != "" {
-		return fmt.Errorf("base URL must not contain query parameters")
+	if !strings.HasSuffix(baseURL.Path, "/") {
+		baseURL.Path += "/"
 	}
 	return nil
 }
@@ -59,6 +51,13 @@ func validateServerAddr(addr string) error {
 	_, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("invalid server address")
+	}
+	return nil
+}
+
+func validateAuthSecret(secret string) error {
+	if len(secret) == 0 {
+		return fmt.Errorf("auth secret not set")
 	}
 	return nil
 }

@@ -1,0 +1,12 @@
+version: "3"
+services:
+  pg_autotest:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=autotest
+      - POSTGRES_PASSWORD=autotest
+      - POSTGRES_DB=autotest
+    volumes:
+      - ../../data/pg_autotest:/var/lib/postgresql/data

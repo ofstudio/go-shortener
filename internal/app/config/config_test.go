@@ -1,126 +1,154 @@
 package config
 
 import (
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
+	"time"
 )
 
-func TestNewFromEnv(t *testing.T) {
-	t.Run("no env", func(t *testing.T) {
-		os.Clearenv()
-		cfg, err := validate(fromEnv())
-		require.NoError(t, err)
-		require.Equal(t, DefaultConfig.BaseURL, cfg.BaseURL)
-		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
-	})
-
-	t.Run("with env", func(t *testing.T) {
-		os.Clearenv()
-		_ = os.Setenv("BASE_URL", "https://example.com/")
-		_ = os.Setenv("SERVER_ADDRESS", "10.10.0.1:3000")
-		cfg, err := validate(fromEnv())
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/", cfg.BaseURL)
-		require.Equal(t, "10.10.0.1:3000", cfg.ServerAddress)
-	})
-
-	t.Run("BASE_URL without slash", func(t *testing.T) {
-		os.Clearenv()
-		_ = os.Setenv("BASE_URL", "https://example.com")
-		cfg, err := NewFromEnv()
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/", cfg.BaseURL)
-		_ = os.Setenv("BASE_URL", "https://example.com/a/b")
-		cfg, err = validate(fromEnv())
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/a/b/", cfg.BaseURL)
-	})
-
-	t.Run("invalid BASE_URL", func(t *testing.T) {
-		os.Clearenv()
-		_ = os.Setenv("BASE_URL", "invalid")
-		_, err := validate(fromEnv())
-		require.Error(t, err)
-	})
-
-	t.Run("BASE_URL with query", func(t *testing.T) {
-		os.Clearenv()
-		_ = os.Setenv("BASE_URL", "https://example.com/?foo=bar")
-		_, err := validate(fromEnv())
-		require.Error(t, err)
-	})
-
-	// Неверный адрес сервера
-	t.Run("invalid ServerAddress", func(t *testing.T) {
-		os.Clearenv()
-		_ = os.Setenv("SERVER_ADDRESS", "invalid")
-		_, err := validate(fromEnv())
-		require.Error(t, err)
-	})
+type configSuite struct {
+	suite.Suite
 }
 
-func TestNewFromEnvAndCLI(t *testing.T) {
-	// Все параметры заданы через коммандную строку
-	t.Run("with CLI", func(t *testing.T) {
-		os.Clearenv()
-		args := []string{"-a", "127.0.0.0:8888", "-b", "https://example.com/", "-f", "/tmp/shortener.aof"}
-		cfg, err := validate(fromEnvAndCLI(args))
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/", cfg.BaseURL)
-		require.Equal(t, "127.0.0.0:8888", cfg.ServerAddress)
-		require.Equal(t, "/tmp/shortener.aof", cfg.FileStoragePath)
+func (suite *configSuite) SetupTest() {
+	os.Clearenv()
+}
+
+func (suite *configSuite) TestNewFromEnv_all() {
+	// Устанавливаем все переменные окружения
+	suite.setenv(map[string]string{
+		"AUTH_TTL":          "1h",
+		"AUTH_SECRET":       "secret",
+		"BASE_URL":          "https://example.com/",
+		"SERVER_ADDRESS":    "localhost:8888",
+		"FILE_STORAGE_PATH": "/tmp/shortener.aof",
 	})
 
-	// Через командную строку задан только BaseURL, остальыне параметры используют значения по умолчанию
-	t.Run("with CLI only BaseURL", func(t *testing.T) {
-		os.Clearenv()
-		args := []string{"-b", "https://example.com/"}
-		cfg, err := validate(fromEnvAndCLI(args))
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/", cfg.BaseURL)
-		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
-		require.Equal(t, DefaultConfig.FileStoragePath, cfg.FileStoragePath)
+	cfg, err := NewFromEnv()
+	suite.NoError(err)
+
+	// Проверяем, что все переменные окружения прочитаны
+	suite.Equal(time.Hour*1, cfg.AuthTTL)
+	suite.Equal("secret", cfg.AuthSecret)
+	suite.Equal(mustParseRequestURI("https://example.com/"), cfg.BaseURL)
+	suite.Equal("localhost:8888", cfg.ServerAddress)
+	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+}
+
+func (suite *configSuite) TestNewFromEnv_partial() {
+	// Устанавливаем только часть переменных окружения
+	suite.setenv(map[string]string{
+		"AUTH_TTL":          "1h",
+		"BASE_URL":          "https://example.com/",
+		"FILE_STORAGE_PATH": "/tmp/shortener.aof",
 	})
 
-	// Через окружение задан BaseUrl и FileStoragePath.
-	// Через командную строку задан FileStoragePath.
-	// Остальыне параметры используют значения по умолчанию
-	t.Run("with env and CLI", func(t *testing.T) {
-		os.Clearenv()
-		_ = os.Setenv("BASE_URL", "https://example.com/")
-		_ = os.Setenv("FILE_STORAGE_PATH", "/tmp/env.aof")
-		args := []string{"-f", "/tmp/cli.aof"}
-		cfg, err := validate(fromEnvAndCLI(args))
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/", cfg.BaseURL)
-		require.Equal(t, DefaultConfig.ServerAddress, cfg.ServerAddress)
-		require.Equal(t, "/tmp/cli.aof", cfg.FileStoragePath)
+	cfg, err := NewFromEnv()
+	suite.NoError(err)
+
+	// Проверяем, что прочитаны заданные переменные окружения
+	suite.Equal(time.Hour*1, cfg.AuthTTL)
+	suite.Equal("https://example.com/", cfg.BaseURL.String())
+	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+
+	// Проверяем, что остальные параметры установлены в значения по умолчанию
+	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)
+	suite.Equal(DefaultConfig.ServerAddress, cfg.ServerAddress)
+}
+
+func (suite *configSuite) TestNewFromEnvAndCLI_all() {
+	// Устанавливаем все доступные флаги
+	args := []string{
+		"-a", "127.0.0.0:8888",
+		"-b", "https://example.com/",
+		"-f", "/tmp/shortener.aof",
+		"-t", "1h",
+	}
+
+	cfg, err := newFromEnvAndCLI(args)
+	suite.NoError(err)
+
+	// Проверяем, что прочитаны все заданные флаги
+	suite.Equal("127.0.0.0:8888", cfg.ServerAddress)
+	suite.Equal("https://example.com/", cfg.BaseURL.String())
+	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+	suite.Equal(time.Hour*1, cfg.AuthTTL)
+
+	// Проверяем, что остальные параметры установлены в значения по умолчанию
+	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)
+}
+
+func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
+	// Устанавливаем часть доступных флагов
+	args := []string{
+		"-a", "0.0.0.0:3000",
+		"-d", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable",
+	}
+	// Устанавливаем часть переменных окружения
+	suite.setenv(map[string]string{
+		"FILE_STORAGE_PATH": "/tmp/shortener.aof",
+		"BASE_URL":          "https://example.com/",
 	})
 
-	// Проверка на корректный BaseURL
-	t.Run("with invalid BaseURL", func(t *testing.T) {
-		os.Clearenv()
-		args := []string{"-b", "invalid_url"}
-		_, err := validate(fromEnvAndCLI(args))
-		require.Error(t, err)
-	})
+	cfg, err := newFromEnvAndCLI(args)
+	suite.NoError(err)
 
-	// Проверка на добавление в конец BaseURL слеша
-	t.Run("add slash in BaseURL", func(t *testing.T) {
-		os.Clearenv()
-		args := []string{"-b", "https://example.com/a/b"}
-		cfg, err := validate(fromEnvAndCLI(args))
-		require.NoError(t, err)
-		require.Equal(t, "https://example.com/a/b/", cfg.BaseURL)
-	})
+	// Проверяем, что прочитаны заданные флаги
+	suite.Equal("0.0.0.0:3000", cfg.ServerAddress)
+	suite.Equal("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", cfg.DatabaseDSN)
 
-	// Неверный адрес сервера
-	t.Run("invalid ServerAddress", func(t *testing.T) {
-		os.Clearenv()
-		args := []string{"-a", "invalid"}
-		_, err := validate(fromEnvAndCLI(args))
-		require.Error(t, err)
-	})
+	// Проверяем, что прочитаны заданные переменные окружения
+	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+	suite.Equal("https://example.com/", cfg.BaseURL.String())
 
+	// Проверяем, что остальные параметры установлены в значения по умолчанию
+	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)
+	suite.Equal(DefaultConfig.AuthTTL, cfg.AuthTTL)
+}
+
+func (suite *configSuite) TestValidateBaseURL() {
+	// Проверяем на невалидный URL
+	_, err := newFromEnvAndCLI([]string{"-a", "not-a-valid-url"})
+	suite.Error(err)
+	suite.setenv(map[string]string{"BASE_URL": "ftps://example.com/"})
+	_, err = newFromEnvAndCLI([]string{})
+	suite.Error(err)
+
+	// Проверяем, что к URL добавляется слеш в конце
+	suite.setenv(map[string]string{"BASE_URL": "https://example.com"})
+	cfg, err := newFromEnvAndCLI([]string{})
+	suite.NoError(err)
+	suite.Equal("https://example.com/", cfg.BaseURL.String())
+	cfg, err = newFromEnvAndCLI([]string{"-b", "https://example.com/subpath"})
+	suite.NoError(err)
+	suite.Equal("https://example.com/subpath/", cfg.BaseURL.String())
+
+	// Проверяем что не допускаются URL с параметрами или фрагментами
+	suite.setenv(map[string]string{"BASE_URL": "https://example.com/subpath?param=1"})
+	_, err = newFromEnvAndCLI([]string{})
+	suite.Error(err)
+	_, err = newFromEnvAndCLI([]string{"-b", "https://example.com/subpath#fragment"})
+	suite.Error(err)
+}
+
+func (suite *configSuite) TestValidateServerAddress() {
+	// Проверяем на невалидный адрес сервера
+	_, err := newFromEnvAndCLI([]string{"-a", "not-a-valid-tcp-address"})
+	suite.Error(err)
+	suite.setenv(map[string]string{"SERVER_ADDRESS": "0.0.0.0:100000"})
+	_, err = newFromEnvAndCLI([]string{})
+	suite.Error(err)
+}
+
+func TestConfigSuite(t *testing.T) {
+	suite.Run(t, new(configSuite))
+}
+
+// setenv - устанавливает переменные окружения
+func (suite *configSuite) setenv(vars map[string]string) {
+	os.Clearenv()
+	for k, v := range vars {
+		suite.NoError(os.Setenv(k, v))
+	}
 }

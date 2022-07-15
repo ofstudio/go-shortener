@@ -93,7 +93,6 @@ func (w *CompressedWriter) Write(p []byte) (int, error) {
 
 	// Если не была произведена проверка типа данных, то проверяем его.
 	if !w.typeChecked {
-		w.typeChecked = true
 		// Если тип данных не разрешен для сжатия, то устанавливаем состояние компрессора не сжимать данные
 		if !w.typeCheck(w.ResponseWriter.Header().Get("Content-Type")) {
 			w.state = statePass
@@ -165,21 +164,23 @@ func (w *CompressedWriter) Close() error {
 		return w.compWriter.Close()
 
 	// Если признак решения о сжатии не установлен и есть данные в буфере,
-	// то отправляем их в поток для несжатых данных.
+	// то отправляем сохраненный заголовок и отправляем данные в поток для несжатых данных.
 	case w.buffered > 0:
 		w.resumeWriteHeader()
 		_, err := w.ResponseWriter.Write(w.buf[:w.buffered])
 		return err
 
 	// Если признак решения о сжатии не установлен и нет данных в буфере,
-	// то ничего не делаем.
+	// то отправляем сохраненный заголовок.
 	default:
+		w.resumeWriteHeader()
 		return nil
 	}
 }
 
 // typeCheck - проверяет, может ли сжиматься данный Content-Type.
 func (w *CompressedWriter) typeCheck(contentType string) bool {
+	w.typeChecked = true
 	// Если не задано ни одного типа, сжимаем по умолчанию все типы.
 	if len(w.allowedTypes) == 0 {
 		return true
