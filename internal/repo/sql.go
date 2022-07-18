@@ -12,13 +12,7 @@ import (
 
 type SQLRepo struct {
 	db *sql.DB
-	// Заранее подготовленные запросы к БД
-	userCreateStmt          *sql.Stmt
-	userGetByIDStmt         *sql.Stmt
-	shortURLCreateStmt      *sql.Stmt
-	shortURLGetByIDStmt     *sql.Stmt
-	shortURLGetByUserIDStmt *sql.Stmt
-	shortURLGetByURLStmt    *sql.Stmt
+	st statements
 }
 
 func MustNewSQLRepo(dsn string) *SQLRepo {
@@ -38,70 +32,10 @@ func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	if err = r.migrate(); err != nil {
 		return nil, err
 	}
-	if err = r.prepareStatements(); err != nil {
+	if r.st, err = prepareStmts(db); err != nil {
 		return nil, err
 	}
 	return r, nil
-}
-
-// prepareStatements - подготавливает запросы к БД
-func (r *SQLRepo) prepareStatements() error {
-	if r.db == nil {
-		return ErrDBNotInitialized
-	}
-
-	var err error
-
-	r.userCreateStmt, err = r.db.Prepare(`
-		INSERT INTO users (id)
-		VALUES (DEFAULT)
-		RETURNING id
-	`)
-	if err != nil {
-		return err
-	}
-
-	r.userGetByIDStmt, err = r.db.Prepare(`
-		SELECT id FROM users 
-	  	WHERE id = $1
-	`)
-	if err != nil {
-		return err
-	}
-
-	r.shortURLCreateStmt, err = r.db.Prepare(`
-		INSERT INTO short_urls (id, original_url, user_id)
-		VALUES ($1, $2, $3)
-	`)
-	if err != nil {
-		return err
-	}
-
-	r.shortURLGetByIDStmt, err = r.db.Prepare(`
-		SELECT id, original_url, user_id FROM short_urls 
-		WHERE id = $1
-	`)
-	if err != nil {
-		return err
-	}
-
-	r.shortURLGetByUserIDStmt, err = r.db.Prepare(`
-		SELECT id, original_url, user_id FROM short_urls 
-		WHERE user_id = $1
-	`)
-	if err != nil {
-		return err
-	}
-
-	r.shortURLGetByURLStmt, err = r.db.Prepare(`
-		SELECT id, original_url, user_id FROM short_urls
-		WHERE original_url = $1
-	`)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // DB - возвращает подключение к базе данных
@@ -122,7 +56,7 @@ func (r *SQLRepo) UserCreate(ctx context.Context, user *models.User) error {
 	if r.db == nil {
 		return ErrDBNotInitialized
 	}
-	err := r.userCreateStmt.QueryRowContext(ctx).Scan(&user.ID)
+	err := r.st[stmtUserCreate].QueryRowContext(ctx).Scan(&user.ID)
 	return err
 }
 
@@ -131,7 +65,7 @@ func (r *SQLRepo) UserGetByID(ctx context.Context, id uint) (*models.User, error
 	if r.db == nil {
 		return nil, ErrDBNotInitialized
 	}
-	rows, err := r.userGetByIDStmt.QueryContext(ctx, id)
+	rows, err := r.st[stmtUserGetByID].QueryContext(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +89,7 @@ func (r *SQLRepo) ShortURLCreate(ctx context.Context, url *models.ShortURL) erro
 	if r.db == nil {
 		return ErrDBNotInitialized
 	}
-	_, err := r.shortURLCreateStmt.ExecContext(ctx, url.ID, url.OriginalURL, url.UserID)
+	_, err := r.st[stmtShortURLCreate].ExecContext(ctx, url.ID, url.OriginalURL, url.UserID)
 
 	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 		return ErrDuplicate
@@ -168,7 +102,7 @@ func (r *SQLRepo) ShortURLGetByID(ctx context.Context, id string) (*models.Short
 	if r.db == nil {
 		return nil, ErrDBNotInitialized
 	}
-	rows, err := r.shortURLGetByIDStmt.QueryContext(ctx, id)
+	rows, err := r.st[stmtShortURLGetByID].QueryContext(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +127,7 @@ func (r *SQLRepo) ShortURLGetByUserID(ctx context.Context, id uint) ([]models.Sh
 	if r.db == nil {
 		return nil, ErrDBNotInitialized
 	}
-	rows, err := r.shortURLGetByUserIDStmt.QueryContext(ctx, id)
+	rows, err := r.st[stmtShortURLGetByUserID].QueryContext(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +152,7 @@ func (r *SQLRepo) ShortURLGetByOriginalURL(ctx context.Context, s string) (*mode
 	if r.db == nil {
 		return nil, ErrDBNotInitialized
 	}
-	rows, err := r.shortURLGetByURLStmt.QueryContext(ctx, s)
+	rows, err := r.st[stmtShortURLGetByOriginalURL].QueryContext(ctx, s)
 	if err != nil {
 		return nil, err
 	}
