@@ -11,4 +11,5 @@ type ShortURL struct {
 	ID          string `json:"id"`
 	OriginalURL string `json:"original_url"`
 	UserID      uint   `json:"user_id"`
+	Deleted     bool   `json:"deleted"`
 }

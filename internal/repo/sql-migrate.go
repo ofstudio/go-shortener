@@ -13,6 +13,7 @@ func (r *SQLRepo) migrate() error {
 			id TEXT PRIMARY KEY,
 			original_url TEXT NOT NULL,
 			user_id INTEGER NOT NULL,
+			deleted BOOLEAN NOT NULL DEFAULT false,
 			FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 		);
 

@@ -78,7 +78,7 @@ func (r *AOFRepo) ShortURLCreate(ctx context.Context, shortURL *models.ShortURL)
 		return err
 	}
 	if err := r.encoder.Encode(aofRecord{ShortURLCreate: shortURL}); err != nil {
-		r.MemoryRepo.shortURLDelete(shortURL.ID)
+		r.MemoryRepo.shortURLPurge(shortURL.ID)
 		return ErrAOFWrite
 	}
 	return nil
