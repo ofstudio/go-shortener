@@ -76,7 +76,7 @@ func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL
 func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.ShortURL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if shortURL, ok := r.shortURLs[id]; ok {
+	if shortURL, ok := r.shortURLs[id]; ok && !shortURL.Deleted {
 		return &shortURL, nil
 	}
 	return nil, ErrNotFound
@@ -91,9 +91,11 @@ func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]mode
 	if !ok {
 		return nil, nil
 	}
-	result := make([]models.ShortURL, len(index))
-	for i, id := range index {
-		result[i] = r.shortURLs[id]
+	result := make([]models.ShortURL, 0, len(index))
+	for _, id := range index {
+		if !r.shortURLs[id].Deleted {
+			result = append(result, r.shortURLs[id])
+		}
 	}
 	return result, nil
 }
@@ -103,11 +105,41 @@ func (r *MemoryRepo) ShortURLGetByOriginalURL(_ context.Context, originalURL str
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if id, ok := r.originalURLIdx[originalURL]; ok {
-		if shortURL, ok := r.shortURLs[id]; ok {
+		if shortURL, ok := r.shortURLs[id]; ok && !r.shortURLs[id].Deleted {
 			return &shortURL, nil
 		}
 	}
 	return nil, ErrNotFound
+}
+
+// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
+// Возвращает количество удаленных ссылок.
+func (r *MemoryRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, ids []string) (int64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for _, id := range ids {
+		if err := r.shortURLDelete(ctx, userID, id); err == nil {
+			n++
+		}
+	}
+	return int64(n), nil
+}
+
+// shortURLDelete - удаляет короткую ссылку из репозитория.
+func (r *MemoryRepo) shortURLDelete(_ context.Context, userID uint, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	shortURL, exist := r.shortURLs[id]
+	if !exist {
+		return ErrNotFound
+	}
+	if shortURL.UserID != userID {
+		return ErrNotFound
+	}
+	shortURL.Deleted = true
+	r.shortURLs[id] = shortURL
+	return nil
 }
 
 // Close - закрывает репозиторий для записи.
@@ -116,9 +148,9 @@ func (r *MemoryRepo) Close() error {
 	return nil
 }
 
-// userDelete - удаляет пользователя, в тч из индекса ссылок пользователя.
+// userPurge - удаляет пользователя, в тч из индекса ссылок пользователя.
 // Вызывается при неудачной попытке создания пользователя в AOFRepo.UserCreate.
-func (r *MemoryRepo) userDelete(id uint) {
+func (r *MemoryRepo) userPurge(id uint) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.users, id)
@@ -137,6 +169,17 @@ func (r *MemoryRepo) shortURLPurge(id string) {
 		// Удаляем короткую ссылку
 		delete(r.originalURLIdx, shortURL.OriginalURL)
 		delete(r.shortURLs, id)
+	}
+}
+
+// shortURLRestore - восстанавливает короткую ссылку.
+// Вызывается при неудачной попытке создания короткой ссылки в AOFRepo.ShortURLDeleteBatch.
+func (r *MemoryRepo) shortURLRestore(id string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if shortURL, exist := r.shortURLs[id]; exist {
+		shortURL.Deleted = false
+		r.shortURLs[id] = shortURL
 	}
 }
 

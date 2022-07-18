@@ -136,6 +136,33 @@ func (suite *sqlRepoSuite) TestShortURLGetByURL_NotFound() {
 	suite.Equal(ErrNotFound, err)
 }
 
+func (suite *sqlRepoSuite) TestShortURLDeleteBatch() {
+	user := &models.User{}
+	suite.NoError(suite.repo.UserCreate(context.Background(), user))
+	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
+	shortURL2 := &models.ShortURL{ID: "bbb", OriginalURL: "https://another.com", UserID: user.ID}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL2))
+	shortURL3 := &models.ShortURL{ID: "ccc", OriginalURL: "https://more.com", UserID: user.ID}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL3))
+
+	// Удаляем ссылки пользователя
+	n, err := suite.repo.ShortURLDeleteBatch(context.Background(), user.ID, []string{"aaa", "bbb"})
+	suite.NoError(err)
+	suite.Equal(2, int(n))
+	shortURLs, err := suite.repo.ShortURLGetByUserID(context.Background(), user.ID)
+	suite.NoError(err)
+	suite.Equal(1, len(shortURLs))
+
+	// Удаляем ссылки не принадлежащие пользователю
+	n, err = suite.repo.ShortURLDeleteBatch(context.Background(), 1000, []string{"ccc"})
+	suite.NoError(err)
+	suite.Equal(0, int(n))
+	shortURLs, err = suite.repo.ShortURLGetByUserID(context.Background(), user.ID)
+	suite.NoError(err)
+	suite.Equal(1, len(shortURLs))
+}
+
 func testIsDBAvailable(dsn string) bool {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

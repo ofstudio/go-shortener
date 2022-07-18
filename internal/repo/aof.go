@@ -15,7 +15,7 @@ import (
 type aofRecord struct {
 	UserCreate     *models.User     `json:"user_create,omitempty"`
 	ShortURLCreate *models.ShortURL `json:"short_url_create,omitempty"`
-	// ShortURLUpdate, ShortURLDelete, etc...
+	ShortURLDelete *models.ShortURL `json:"short_url_update,omitempty"`
 }
 
 // AOFRepo - реализация Repo для хранения данных в append-only файле (AOF).
@@ -62,7 +62,7 @@ func (r *AOFRepo) UserCreate(ctx context.Context, user *models.User) error {
 		return err
 	}
 	if err := r.encoder.Encode(aofRecord{UserCreate: user}); err != nil {
-		r.MemoryRepo.userDelete(user.ID)
+		r.MemoryRepo.userPurge(user.ID)
 		return ErrAOFWrite
 	}
 	return nil
@@ -82,6 +82,25 @@ func (r *AOFRepo) ShortURLCreate(ctx context.Context, shortURL *models.ShortURL)
 		return ErrAOFWrite
 	}
 	return nil
+}
+
+// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
+// Возвращает количество удаленных ссылок.
+func (r *AOFRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, ids []string) (int64, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for _, id := range ids {
+		if err := r.MemoryRepo.shortURLDelete(ctx, userID, id); err != nil {
+			continue
+		}
+		if err := r.encoder.Encode(aofRecord{ShortURLDelete: &models.ShortURL{ID: id, UserID: userID}}); err != nil {
+			r.MemoryRepo.shortURLRestore(id)
+			return int64(n), err
+		}
+		n++
+	}
+	return int64(n), nil
 }
 
 // Close - закрывает репозиторий для записи.
@@ -119,15 +138,18 @@ func loadRepoFromFile(aofPath string) (*MemoryRepo, error) {
 
 // loadRecord - загружает одну JSON-запись aofRecord в MemoryRepo.
 // При несоответствии структуры данных возвращает ErrAOFStructure.
-func loadRecord(record *aofRecord, repo *MemoryRepo) error {
-
+func loadRecord(r *aofRecord, repo *MemoryRepo) error {
 	switch {
-	case record.UserCreate != nil:
-		if err := repo.UserCreate(context.Background(), record.UserCreate); err != nil {
+	case r.UserCreate != nil:
+		if err := repo.UserCreate(context.Background(), r.UserCreate); err != nil {
 			return err
 		}
-	case record.ShortURLCreate != nil:
-		if err := repo.ShortURLCreate(context.Background(), record.ShortURLCreate); err != nil {
+	case r.ShortURLCreate != nil:
+		if err := repo.ShortURLCreate(context.Background(), r.ShortURLCreate); err != nil {
+			return err
+		}
+	case r.ShortURLDelete != nil:
+		if err := repo.shortURLDelete(context.Background(), r.ShortURLDelete.UserID, r.ShortURLDelete.ID); err != nil {
 			return err
 		}
 	default:

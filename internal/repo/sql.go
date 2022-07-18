@@ -171,3 +171,19 @@ func (r *SQLRepo) ShortURLGetByOriginalURL(ctx context.Context, s string) (*mode
 	}
 	return &u, nil
 }
+
+// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
+// Возвращает количество удаленных ссылок.
+func (r *SQLRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, ids []string) (int64, error) {
+	if r.db == nil {
+		return 0, ErrDBNotInitialized
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	res, err := r.st[stmtShortURLDeleteBatch].ExecContext(ctx, userID, ids)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}

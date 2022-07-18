@@ -20,5 +20,7 @@ type Repo interface {
 	ShortURLGetByUserID(context.Context, uint) ([]models.ShortURL, error)
 	// ShortURLGetByOriginalURL - возвращает сокращенную ссылку по ее оригинальному url.
 	ShortURLGetByOriginalURL(context.Context, string) (*models.ShortURL, error)
+	// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
+	ShortURLDeleteBatch(context.Context, uint, []string) (int64, error)
 	Close() error
 }

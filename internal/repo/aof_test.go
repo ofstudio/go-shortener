@@ -108,6 +108,45 @@ func (suite *aofRepoSuite) TestAOFRepo_ShortURLCreate() {
 	suite.Equal(0, len(userURLs))
 }
 
+func (suite *aofRepoSuite) TestShortURLDeleteBatch() {
+	// Создаем репозиторий и записываем в него сокращенные ссылки
+	repo1, err := NewAOFRepo(suite.filePath)
+	suite.NoError(err)
+	suite.NoError(repo1.ShortURLCreate(context.Background(), &models.ShortURL{ID: "abc", OriginalURL: "https://www.ya.ru", UserID: 100}))
+	suite.NoError(repo1.ShortURLCreate(context.Background(), &models.ShortURL{ID: "pqr", OriginalURL: "https://www.closed.ru", UserID: 100}))
+	suite.NoError(repo1.ShortURLCreate(context.Background(), &models.ShortURL{ID: "xyz", OriginalURL: "https://www.open.ru", UserID: 100}))
+	suite.NoError(repo1.Close())
+
+	// Открываем репозиторий и проверяем, что сокращенные ссылки записаны в него
+	repo2, err := NewAOFRepo(suite.filePath)
+	suite.NoError(err)
+	shortURLs, err := repo2.ShortURLGetByUserID(context.Background(), 100)
+	suite.NoError(err)
+	suite.Equal(3, len(shortURLs))
+	suite.Equal("abc", shortURLs[0].ID)
+	suite.Equal("pqr", shortURLs[1].ID)
+	suite.Equal("xyz", shortURLs[2].ID)
+
+	// Удаляем из репозитория пользователя сокращенные ссылки
+	n, err := repo2.ShortURLDeleteBatch(context.Background(), 100, []string{"abc", "xyz"})
+	suite.NoError(err)
+	suite.Equal(2, int(n))
+	// Пытаемся удалить ссылку не принадлежащую пользователю
+	n, err = repo2.ShortURLDeleteBatch(context.Background(), 999, []string{"pqr"})
+	suite.NoError(err)
+	suite.Equal(0, int(n))
+	suite.NoError(repo2.Close())
+
+	// Открываем репозиторий и проверяем, что ссылки удалены
+	repo3, err := NewAOFRepo(suite.filePath)
+	suite.NoError(err)
+	shortURLs, err = repo3.ShortURLGetByUserID(context.Background(), 100)
+	suite.NoError(err)
+	suite.Equal(1, len(shortURLs))
+	suite.Equal("pqr", shortURLs[0].ID)
+	suite.NoError(repo3.Close())
+}
+
 func TestAOFRepo(t *testing.T) {
 	suite.Run(t, new(aofRepoSuite))
 }

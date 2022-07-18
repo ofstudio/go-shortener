@@ -120,6 +120,35 @@ func (suite *memoryRepoSuite) TestShortURLGetByUserId() {
 	suite.Nil(urls)
 }
 
+func (suite *memoryRepoSuite) TestShortURLDelete() {
+	shortURL1 := &models.ShortURL{
+		ID:          "12345",
+		OriginalURL: "https://www.google.com",
+		UserID:      1,
+	}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL1))
+
+	shortURL2 := &models.ShortURL{
+		ID:          "67890",
+		OriginalURL: "https://www.baidu.com",
+		UserID:      1,
+	}
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL2))
+
+	// Удаляем сокращенную ссылку
+	suite.NoError(suite.repo.shortURLDelete(context.Background(), 1, "12345"))
+
+	// Пытаемся получить сокращенную ссылку по ID
+	_, err := suite.repo.ShortURLGetByID(context.Background(), "12345")
+	suite.Equal(ErrNotFound, err)
+
+	// Пытаемся удалить ссылку не существующего пользователя
+	suite.Equal(ErrNotFound, suite.repo.shortURLDelete(context.Background(), 2, "67890"))
+	shortURLs, err := suite.repo.ShortURLGetByUserID(context.Background(), 1)
+	suite.NoError(err)
+	suite.Equal([]models.ShortURL{*shortURL2}, shortURLs)
+}
+
 func (suite *memoryRepoSuite) Test_autoIncrement() {
 	// Создаем первого пользователя
 	user1 := &models.User{}
