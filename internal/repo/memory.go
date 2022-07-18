@@ -125,9 +125,9 @@ func (r *MemoryRepo) userDelete(id uint) {
 	delete(r.userShortURLs, id)
 }
 
-// shortURLDelete - удаляет короткую ссылку, в тч из индекса ссылок пользователя.
+// shortURLPurge - удаляет короткую ссылку, в тч из индекса ссылок пользователя.
 // Вызывается при неудачной попытке создания короткой ссылки в AOFRepo.ShortURLCreate.
-func (r *MemoryRepo) shortURLDelete(id string) {
+func (r *MemoryRepo) shortURLPurge(id string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if shortURL, exist := r.shortURLs[id]; exist {
