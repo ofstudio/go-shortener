@@ -20,8 +20,8 @@ import (
 )
 
 func main() {
-	// Считываем конфигурацию.
-	cfg := config.MustNewFromEnvAndCLI()
+	// Считываем конфигурацию: по-умолчанию => из переменных окружения => из командной строки
+	cfg := config.MustCompose(config.Default, config.FromEnv, config.FromCLI)
 	// Создаём репозиторий и сервисы.
 	repository := repo.Fabric(cfg)
 	defer repository.Close()

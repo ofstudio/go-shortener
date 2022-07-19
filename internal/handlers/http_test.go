@@ -19,7 +19,7 @@ import (
 
 var _ = Describe("shortURL handlers", func() {
 	server := &ghttp.Server{}
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 	shortURLPath := ""

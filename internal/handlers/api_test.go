@@ -21,7 +21,7 @@ import (
 
 var _ = Describe("POST /shorten ", func() {
 	var server *ghttp.Server
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 
@@ -116,7 +116,7 @@ var _ = Describe("POST /shorten ", func() {
 
 var _ = Describe("POST /shorten/batch", func() {
 	var server *ghttp.Server
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 
@@ -163,7 +163,7 @@ var _ = Describe("POST /shorten/batch", func() {
 
 var _ = Describe("GET /user/urls", func() {
 	var server *ghttp.Server
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 	var cookie *http.Cookie
@@ -227,7 +227,7 @@ var _ = Describe("GET /user/urls", func() {
 var _ = Describe("DELETE /user/urls", func() {
 	var server *ghttp.Server
 	var cookie *http.Cookie
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 
