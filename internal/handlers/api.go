@@ -22,8 +22,9 @@ func NewAPIHandlers(srv *services.Container) *APIHandlers {
 func (h APIHandlers) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/shorten", h.shortURLCreate)
-	r.Post("/shorten/batch", h.shortURLBatchCreate)
+	r.Post("/shorten/batch", h.shortURLCreateBatch)
 	r.Get("/user/urls", h.shortURLGetByUserID)
+	r.Delete("/user/urls", h.shortURLDeleteBatch)
 	return r
 }
 
@@ -77,7 +78,7 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 		resType{Result: h.srv.ShortURLService.Resolve(shortURL.ID)})
 }
 
-// shortURLBatchCreate - принимает в теле запроса список строк URL для сокращения:
+// shortURLCreateBatch - принимает в теле запроса список строк URL для сокращения:
 //    [
 //        {
 //            "correlation_id": "<строковый идентификатор>",
@@ -93,7 +94,7 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 //        },
 //        ...
 //    ]
-func (h APIHandlers) shortURLBatchCreate(w http.ResponseWriter, r *http.Request) {
+func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
 	type reqType struct {
 		CorrelationID string `json:"correlation_id"`
@@ -135,6 +136,39 @@ func (h APIHandlers) shortURLBatchCreate(w http.ResponseWriter, r *http.Request)
 
 	// Возвращаем ответ
 	respondWithJSON(w, http.StatusCreated, resJSON)
+}
+
+// shortURLDeleteBatch - помечает ссылки пользователя как удаленные.
+// Формат запроса:
+//    [ "a", "b", "c", "d", ...]
+// Возвращает ответ http.StatusAccepted (202)
+func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request) {
+	// Структура элемента запроса
+	type reqType []string
+
+	// Проверяем аутентифицирован ли пользователь
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		respondWithError(w, ErrAuth)
+		return
+	}
+
+	// Читаем body запроса
+	reqJSON := make(reqType, 0)
+	if err := parseJSONRequest(r, &reqJSON); err != nil {
+		respondWithError(w, err)
+		return
+	}
+
+	if len(reqJSON) == 0 {
+		respondWithError(w, ErrValidation)
+		return
+	}
+	// Отправляем ответ
+	w.WriteHeader(http.StatusAccepted)
+
+	// Удаляем ссылки
+	_ = h.srv.ShortURLService.DeleteBatch(r.Context(), userID, reqJSON)
 }
 
 // shortURLGetByUserID - возвращает список сокращенных ссылок пользователя.

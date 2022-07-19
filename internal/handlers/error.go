@@ -24,6 +24,9 @@ func respondWithError(w http.ResponseWriter, err error) {
 	// 401
 	case errors.Is(err, ErrAuth):
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+	// 410
+	case errors.Is(err, services.ErrDeleted):
+		http.Error(w, http.StatusText(http.StatusGone), http.StatusGone)
 	// 500
 	default:
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
