@@ -14,6 +14,7 @@ const (
 	stmtShortURLGetByID
 	stmtShortURLGetByUserID
 	stmtShortURLGetByOriginalURL
+	stmtShortURLDelete
 	stmtShortURLDeleteBatch
 )
 
@@ -32,16 +33,21 @@ var queries = map[stmt]string{
 		VALUES ($1, $2, $3)
 	`,
 	stmtShortURLGetByID: `
-		SELECT id, original_url, user_id FROM short_urls 
-		WHERE id = $1 AND deleted = false
+		SELECT id, original_url, user_id, deleted FROM short_urls 
+		WHERE id = $1
 	`,
 	stmtShortURLGetByUserID: `
-		SELECT id, original_url, user_id FROM short_urls 
-		WHERE user_id = $1 AND deleted = false
+		SELECT id, original_url, user_id, deleted FROM short_urls 
+		WHERE user_id = $1
 	`,
 	stmtShortURLGetByOriginalURL: `
-		SELECT id, original_url, user_id FROM short_urls
-		WHERE original_url = $1 AND deleted = false
+		SELECT id, original_url, user_id, deleted FROM short_urls
+		WHERE original_url = $1
+	`,
+	stmtShortURLDelete: `
+		UPDATE short_urls
+		SET deleted = true
+		WHERE  user_id = $1 AND id = $2
 	`,
 	stmtShortURLDeleteBatch: `
 		UPDATE short_urls
