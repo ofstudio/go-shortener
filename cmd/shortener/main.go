@@ -72,9 +72,9 @@ func main() {
 	log.Printf("Starting http server at %s", cfg.ServerAddress)
 	err := server.ListenAndServe()
 
-	if errors.Is(err, http.ErrServerClosed) {
-		log.Println("Http server stopped. Exiting...")
-	} else if err != nil {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Http server error: %v", err)
 	}
+	log.Println("Http server stopped. Exiting...")
+
 }
