@@ -76,7 +76,7 @@ func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL
 func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.ShortURL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if shortURL, ok := r.shortURLs[id]; ok && !shortURL.Deleted {
+	if shortURL, ok := r.shortURLs[id]; ok {
 		return &shortURL, nil
 	}
 	return nil, ErrNotFound
@@ -93,9 +93,7 @@ func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]mode
 	}
 	result := make([]models.ShortURL, 0, len(index))
 	for _, id := range index {
-		if !r.shortURLs[id].Deleted {
-			result = append(result, r.shortURLs[id])
-		}
+		result = append(result, r.shortURLs[id])
 	}
 	return result, nil
 }
@@ -105,29 +103,45 @@ func (r *MemoryRepo) ShortURLGetByOriginalURL(_ context.Context, originalURL str
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if id, ok := r.originalURLIdx[originalURL]; ok {
-		if shortURL, ok := r.shortURLs[id]; ok && !r.shortURLs[id].Deleted {
+		if shortURL, ok := r.shortURLs[id]; ok {
 			return &shortURL, nil
 		}
 	}
 	return nil, ErrNotFound
 }
 
-// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
-// Возвращает количество удаленных ссылок.
-func (r *MemoryRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, ids []string) (int64, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+// ShortURLDeleteBatch - помечает удаленными несколько сокращенных ссылок пользователя по их id.
+// Принимает на вход список каналов для передачи идентификаторов.
+// Возвращает количество удаленных сокращенных ссылок.
+func (r *MemoryRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, chans ...chan string) (int64, error) {
+	// Мультиплексируем каналы chans в один канал ch.
+	ch := fanIn(ctx, chans...)
 	n := 0
-	for _, id := range ids {
-		if err := r.shortURLDelete(ctx, userID, id); err == nil {
+	// Читаем значения из канала и помечаем ссылки как удаленные
+loop:
+	for {
+		select {
+		// Если контекст завершился, выходим из цикла.
+		case <-ctx.Done():
+			break loop
+		case id, ok := <-ch:
+			// Если канал закрыт, выходим из цикла.
+			if !ok {
+				break loop
+			}
+			// Помечаем ссылку как удаленную.
+			if err := r.ShortURLDelete(ctx, userID, id); err != nil {
+				continue
+			}
+			// Если ссылка успешно помечена как удаленная, увеличиваем счетчик.
 			n++
 		}
 	}
 	return int64(n), nil
 }
 
-// shortURLDelete - удаляет короткую ссылку из репозитория.
-func (r *MemoryRepo) shortURLDelete(_ context.Context, userID uint, id string) error {
+// ShortURLDelete - помечает удаленной короткую ссылку пользователя по ее id.
+func (r *MemoryRepo) ShortURLDelete(_ context.Context, userID uint, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	shortURL, exist := r.shortURLs[id]
@@ -192,7 +206,6 @@ func (r *MemoryRepo) shortURLRestore(id string) {
 //    - Ситуации с next == 0 не обрабатываются.
 //
 func autoIncrement(id, next *uint) {
-
 	switch {
 	case id == nil || next == nil:
 		return

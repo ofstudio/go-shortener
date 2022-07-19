@@ -112,7 +112,7 @@ func (r *SQLRepo) ShortURLGetByID(ctx context.Context, id string) (*models.Short
 		return nil, ErrNotFound
 	}
 	var u models.ShortURL
-	if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID); err != nil {
+	if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID, &u.Deleted); err != nil {
 		return nil, err
 	}
 	if rows.Err() != nil {
@@ -136,7 +136,7 @@ func (r *SQLRepo) ShortURLGetByUserID(ctx context.Context, id uint) ([]models.Sh
 	var urls []models.ShortURL
 	for rows.Next() {
 		var u models.ShortURL
-		if err = rows.Scan(&u.ID, &u.OriginalURL, &u.ID); err != nil {
+		if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID, &u.Deleted); err != nil {
 			return nil, err
 		}
 		urls = append(urls, u)
@@ -163,7 +163,7 @@ func (r *SQLRepo) ShortURLGetByOriginalURL(ctx context.Context, s string) (*mode
 		return nil, ErrNotFound
 	}
 	var u models.ShortURL
-	if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID); err != nil {
+	if err = rows.Scan(&u.ID, &u.OriginalURL, &u.UserID, &u.Deleted); err != nil {
 		return nil, err
 	}
 	if rows.Err() != nil {
@@ -172,12 +172,42 @@ func (r *SQLRepo) ShortURLGetByOriginalURL(ctx context.Context, s string) (*mode
 	return &u, nil
 }
 
-// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
-// Возвращает количество удаленных ссылок.
-func (r *SQLRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, ids []string) (int64, error) {
+// ShortURLDelete - помечает удаленной короткую ссылку пользователя по ее id.
+func (r *SQLRepo) ShortURLDelete(_ context.Context, userID uint, id string) error {
+	if r.db == nil {
+		return ErrDBNotInitialized
+	}
+	res, err := r.st[stmtShortURLDelete].ExecContext(context.Background(), userID, id)
+	if err != nil {
+		return err
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return ErrNotFound
+	}
+	return err
+}
+
+// ShortURLDeleteBatch - помечает удаленными сокращенных ссылок пользователя по их id.
+// Принимает на вход список каналов для передачи идентификаторов.
+// Возвращает количество помеченных удаленными ссылок.
+func (r *SQLRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, chans ...chan string) (int64, error) {
 	if r.db == nil {
 		return 0, ErrDBNotInitialized
 	}
+
+	// Мультиплексируем каналы chans в один канал ch.
+	ch := fanIn(ctx, chans...)
+	var ids []string
+	// Читаем значения из канала и собираем все id для удаления один слайс
+	for id := range ch {
+		ids = append(ids, id)
+	}
+
+	// Удаляем ссылки по их id.
 	if len(ids) == 0 {
 		return 0, nil
 	}

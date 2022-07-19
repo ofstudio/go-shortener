@@ -84,21 +84,46 @@ func (r *AOFRepo) ShortURLCreate(ctx context.Context, shortURL *models.ShortURL)
 	return nil
 }
 
-// ShortURLDeleteBatch - удаляет несколько сокращенных ссылок пользователя по их id.
-// Возвращает количество удаленных ссылок.
-func (r *AOFRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, ids []string) (int64, error) {
+// ShortURLDelete - помечает удаленной короткую ссылку пользователя по ее id.
+func (r *AOFRepo) ShortURLDelete(ctx context.Context, userID uint, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if err := r.MemoryRepo.ShortURLDelete(ctx, userID, id); err != nil {
+		return err
+	}
+	if err := r.encoder.Encode(aofRecord{ShortURLDelete: &models.ShortURL{ID: id, UserID: userID}}); err != nil {
+		r.MemoryRepo.shortURLRestore(id)
+		return ErrAOFWrite
+	}
+	return nil
+}
+
+// ShortURLDeleteBatch - помечает удаленными несколько сокращенных ссылок пользователя по их id.
+// Принимает на вход список каналов для передачи идентификаторов.
+// Возвращает количество удаленных сокращенных ссылок.
+func (r *AOFRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, chans ...chan string) (int64, error) {
+	// Мультиплексируем каналы chans в один канал ch.
+	ch := fanIn(ctx, chans...)
 	n := 0
-	for _, id := range ids {
-		if err := r.MemoryRepo.shortURLDelete(ctx, userID, id); err != nil {
-			continue
+	// Читаем значения из канала и помечаем ссылки как удаленные
+loop:
+	for {
+		select {
+		// Если контекст завершился, выходим из цикла.
+		case <-ctx.Done():
+			break loop
+		case id, ok := <-ch:
+			// Если канал закрыт, выходим из цикла.
+			if !ok {
+				break loop
+			}
+			// Помечаем ссылку как удаленную.
+			if err := r.ShortURLDelete(ctx, userID, id); err != nil {
+				continue
+			}
+			// Если ссылка успешно помечена как удаленная, увеличиваем счетчик.
+			n++
 		}
-		if err := r.encoder.Encode(aofRecord{ShortURLDelete: &models.ShortURL{ID: id, UserID: userID}}); err != nil {
-			r.MemoryRepo.shortURLRestore(id)
-			return int64(n), err
-		}
-		n++
 	}
 	return int64(n), nil
 }
@@ -149,7 +174,7 @@ func loadRecord(r *aofRecord, repo *MemoryRepo) error {
 			return err
 		}
 	case r.ShortURLDelete != nil:
-		if err := repo.shortURLDelete(context.Background(), r.ShortURLDelete.UserID, r.ShortURLDelete.ID); err != nil {
+		if err := repo.ShortURLDelete(context.Background(), r.ShortURLDelete.UserID, r.ShortURLDelete.ID); err != nil {
 			return err
 		}
 	default:
