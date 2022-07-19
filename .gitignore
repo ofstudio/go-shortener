@@ -25,3 +25,6 @@ vendor/
 # Data directory
 data/*
 !data/.gitkeep
+
+# Playground directory
+playground/*
