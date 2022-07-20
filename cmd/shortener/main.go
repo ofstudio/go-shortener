@@ -21,7 +21,10 @@ import (
 
 func main() {
 	// Считываем конфигурацию: по-умолчанию => из переменных окружения => из командной строки
-	cfg := config.MustCompose(config.Default, config.FromEnv, config.FromCLI)
+	cfg, err := config.Compose(config.Default, config.FromEnv, config.FromCLI)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// Создаём репозиторий и сервисы.
 	repository, err := repo.Fabric(cfg)
 	if err != nil {

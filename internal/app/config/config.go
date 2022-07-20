@@ -2,9 +2,13 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"github.com/caarlos0/env/v6"
+	"golang.org/x/sync/errgroup"
+	"net"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -30,18 +34,23 @@ type Config struct {
 	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
-var defaultConfig = Config{
-	BaseURL:       mustParseRequestURI("http://localhost:8080/"),
-	ServerAddress: "0.0.0.0:8080",
-	AuthTTL:       time.Minute * 60 * 24 * 30,
-	AuthSecret:    mustRandSecret(64),
-	DatabaseDSN:   "",
-}
-
 // Default - конфигурационная функция, которая возвращает конфигурацию по умолчанию.
 // Входной параметр не используется. Ошибки не возвращаются.
 func Default(_ *Config) (*Config, error) {
-	cfg := defaultConfig
+	secret, err := randSecret(64)
+	if err != nil {
+		return nil, err
+	}
+	cfg := Config{
+		BaseURL:       url.URL{Scheme: "http", Host: "localhost:8080", Path: "/"},
+		ServerAddress: "0.0.0.0:8080",
+		AuthTTL:       time.Minute * 60 * 24 * 30,
+		AuthSecret:    secret,
+		DatabaseDSN:   "",
+	}
+	if err = cfg.validate(); err != nil {
+		return nil, err
+	}
 	return &cfg, nil
 }
 
@@ -72,7 +81,11 @@ func fromCLI(cfg *Config, arguments ...string) (*Config, error) {
 	if err := cli.Parse(arguments); err != nil {
 		return nil, err
 	}
-	return validate(cfg)
+
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
 // FromEnv - конфигурационная функция, которая читывает конфигурацию приложения из переменных окружения.
@@ -91,5 +104,55 @@ func FromEnv(cfg *Config) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	return validate(cfg)
+	if err = cfg.validate(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+// validate - проверяет конфигурацию на валидность
+func (c *Config) validate() error {
+	g := &errgroup.Group{}
+	g.Go(c.validateAuthSecret)
+	g.Go(c.validateBaseURL)
+	g.Go(c.validateServerAddr)
+	return g.Wait()
+}
+
+// validateBaseURL - проверяет базовый адрес сокращённого URL.
+// Возвращает ошибку в случае:
+//    - URL не содержит протокол http или https
+//    - URL содержит параметры или фрагмент.
+// Добавляет слеш в конце Path, если его нет.
+func (c *Config) validateBaseURL() error {
+	if c.BaseURL.RawQuery != "" || c.BaseURL.Fragment != "" {
+		return fmt.Errorf("base URL must not contain query parameters or fragment")
+	}
+	if c.BaseURL.Scheme != "http" && c.BaseURL.Scheme != "https" {
+		return fmt.Errorf("base URL must use http or https scheme")
+	}
+	if !strings.HasSuffix(c.BaseURL.Path, "/") {
+		c.BaseURL.Path += "/"
+	}
+	return nil
+}
+
+// validateServerAddr - проверяет адрес для запуска HTTP-сервера.
+func (c *Config) validateServerAddr() error {
+	if c.ServerAddress == "" {
+		return fmt.Errorf("empty server address")
+	}
+	_, err := net.ResolveTCPAddr("tcp", c.ServerAddress)
+	if err != nil {
+		return fmt.Errorf("invalid server address")
+	}
+	return nil
+}
+
+// validateAuthSecret - проверяет чтобы ключ авторизации был не пустым.
+func (c *Config) validateAuthSecret() error {
+	if len(c.AuthSecret) == 0 {
+		return fmt.Errorf("auth secret not set")
+	}
+	return nil
 }
