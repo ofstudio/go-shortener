@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"io"
-	"log"
 	"os"
 	"sync"
 )
@@ -28,14 +27,6 @@ type AOFRepo struct {
 	encoder *json.Encoder
 	*MemoryRepo
 	mu sync.Mutex
-}
-
-func MustNewAOFRepo(filePath string) *AOFRepo {
-	repo, err := NewAOFRepo(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return repo
 }
 
 func NewAOFRepo(filePath string) (*AOFRepo, error) {

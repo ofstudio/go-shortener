@@ -23,7 +23,10 @@ func main() {
 	// Считываем конфигурацию: по-умолчанию => из переменных окружения => из командной строки
 	cfg := config.MustCompose(config.Default, config.FromEnv, config.FromCLI)
 	// Создаём репозиторий и сервисы.
-	repository := repo.Fabric(cfg)
+	repository, err := repo.Fabric(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer repository.Close()
 	srv := services.NewContainer(cfg, repository)
 
@@ -70,11 +73,10 @@ func main() {
 
 	// Запускаем сервер.
 	log.Printf("Starting http server at %s", cfg.ServerAddress)
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Http server error: %v", err)
 	}
 	log.Println("Http server stopped. Exiting...")
-
 }

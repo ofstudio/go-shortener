@@ -7,20 +7,11 @@ import (
 	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/ofstudio/go-shortener/internal/models"
-	"log"
 )
 
 type SQLRepo struct {
 	db *sql.DB
 	st statements
-}
-
-func MustNewSQLRepo(dsn string) *SQLRepo {
-	r, err := NewSQLRepo(dsn)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return r
 }
 
 func NewSQLRepo(dsn string) (*SQLRepo, error) {
