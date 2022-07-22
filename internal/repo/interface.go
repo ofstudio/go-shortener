@@ -18,7 +18,13 @@ type Repo interface {
 	// ShortURLGetByUserID - возвращает сокращенные ссылки пользователя.
 	// Если пользователь не найден, или у пользователя нет ссылок возвращает nil.
 	ShortURLGetByUserID(context.Context, uint) ([]models.ShortURL, error)
-	// ShortURLGetByURL - возвращает сокращенную ссылку по ее оригинальному url.
+	// ShortURLGetByOriginalURL - возвращает сокращенную ссылку по ее оригинальному url.
 	ShortURLGetByOriginalURL(context.Context, string) (*models.ShortURL, error)
+	// ShortURLDelete - помечает удаленной короткую ссылку пользователя по ее id.
+	ShortURLDelete(context.Context, uint, string) error
+	// ShortURLDeleteBatch - помечает удаленными несколько сокращенных ссылок пользователя по их id.
+	// Принимает на вход список каналов для передачи идентификаторов.
+	// Возвращает количество удаленных сокращенных ссылок.
+	ShortURLDeleteBatch(context.Context, uint, ...chan string) (int64, error)
 	Close() error
 }

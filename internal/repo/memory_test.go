@@ -9,11 +9,18 @@ import (
 
 type memoryRepoSuite struct {
 	suite.Suite
-	repo *MemoryRepo
+	repo          *MemoryRepo
+	testShortURLs []*models.ShortURL
 }
 
 func (suite *memoryRepoSuite) SetupTest() {
 	suite.repo = NewMemoryRepo()
+	suite.testShortURLs = []*models.ShortURL{
+		{ID: "12345", OriginalURL: "https://www.google.com", UserID: 1},
+		{ID: "67890", OriginalURL: "https://www.baidu.com", UserID: 1},
+		{ID: "aaaaa", OriginalURL: "https://www.qq.com", UserID: 1},
+		{ID: "bbbbb", OriginalURL: "https://www.taobao.com", UserID: 2},
+	}
 }
 
 func (suite *memoryRepoSuite) TestUserCreate() {
@@ -39,34 +46,30 @@ func (suite *memoryRepoSuite) TestUserCreate() {
 
 func (suite *memoryRepoSuite) TestUserGetByID() {
 	// Создаем пользователя
-	user1 := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user1))
+	user := &models.User{}
+	suite.NoError(suite.repo.UserCreate(context.Background(), user))
 	// Получаем пользователя по ID
-	user2, err := suite.repo.UserGetByID(context.Background(), user1.ID)
+	actual, err := suite.repo.UserGetByID(context.Background(), user.ID)
 	suite.NoError(err)
 	// Проверяем, что пользователь совпадает с первым
-	suite.Equal(user1, user2)
+	suite.Equal(user, actual)
 
 	// Пытаемся получить пользователя по несуществующему ID
-	_, err = suite.repo.UserGetByID(context.Background(), user1.ID+1)
+	_, err = suite.repo.UserGetByID(context.Background(), user.ID+1)
 	suite.Equal(ErrNotFound, err)
 }
 
 func (suite *memoryRepoSuite) TestShortURLCreate() {
 	// Создаем первую сокращенную ссылку
-	shortURL1 := &models.ShortURL{
-		ID:          "12345",
-		OriginalURL: "https://www.google.com",
-		UserID:      1,
-	}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL1))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
 
 	// Пытаемся создать вторую сокращенную ссылку с таким же ID
-	shortURL2 := &models.ShortURL{
-		ID:          "12345",
-		OriginalURL: "https://www.baidu.com",
+	withDuplicateID := &models.ShortURL{
+		ID:          suite.testShortURLs[0].ID,
+		OriginalURL: "https://www.never.com",
+		UserID:      1,
 	}
-	suite.Equal(ErrDuplicate, suite.repo.ShortURLCreate(context.Background(), shortURL2))
+	suite.Equal(ErrDuplicate, suite.repo.ShortURLCreate(context.Background(), withDuplicateID))
 
 	// Пытаемся создать сокращенную ссылку из nil-объекта
 	suite.Equal(ErrInvalidModel, suite.repo.ShortURLCreate(context.Background(), nil))
@@ -74,17 +77,12 @@ func (suite *memoryRepoSuite) TestShortURLCreate() {
 
 func (suite *memoryRepoSuite) TestShortURLGetById() {
 	// Создаем первую сокращенную ссылку
-	shortURL1 := &models.ShortURL{
-		ID:          "12345",
-		OriginalURL: "https://www.google.com",
-		UserID:      1,
-	}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL1))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
 	// Получаем сокращенную ссылку по ID
-	shortURL2, err := suite.repo.ShortURLGetByID(context.Background(), "12345")
+	actual, err := suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[0].ID)
 	suite.NoError(err)
 	// Проверяем, что сокращенная ссылка совпадает с первой
-	suite.Equal(shortURL1, shortURL2, "should return the same shortURL")
+	suite.Equal(suite.testShortURLs[0], actual, "should return the same actual")
 
 	// Пытаемся получить сокращенную ссылку по несуществующему ID
 	_, err = suite.repo.ShortURLGetByID(context.Background(), "not-exist")
@@ -93,31 +91,87 @@ func (suite *memoryRepoSuite) TestShortURLGetById() {
 
 func (suite *memoryRepoSuite) TestShortURLGetByUserId() {
 	// Создаем первую сокращенную ссылку
-	shortURL1 := &models.ShortURL{
-		ID:          "12345",
-		OriginalURL: "https://www.google.com",
-		UserID:      1,
-	}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL1))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
 
 	// Создаем вторую сокращенную ссылку с таким же UserID
-	shortURL2 := &models.ShortURL{
+	withSameUserID := &models.ShortURL{
 		ID:          "67890",
 		OriginalURL: "https://www.baidu.com",
-		UserID:      1,
+		UserID:      suite.testShortURLs[0].UserID,
 	}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL2))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), withSameUserID))
 
 	// Получаем сокращенные ссылки пользователя
-	shortURLs, err := suite.repo.ShortURLGetByUserID(context.Background(), 1)
+	actual, err := suite.repo.ShortURLGetByUserID(context.Background(), 1)
 	suite.NoError(err)
 	// Проверяем, что получили такие же 2 сокращенные ссылки
-	suite.Equal([]models.ShortURL{*shortURL1, *shortURL2}, shortURLs)
+	suite.Equal([]models.ShortURL{*suite.testShortURLs[0], *withSameUserID}, actual)
 
 	// Пытаемся получить сокращенные ссылки пользователя по несуществующему ID
-	urls, err := suite.repo.ShortURLGetByUserID(context.Background(), 2)
+	actual, err = suite.repo.ShortURLGetByUserID(context.Background(), 2)
 	suite.NoError(err)
-	suite.Nil(urls)
+	suite.Nil(actual)
+}
+
+func (suite *memoryRepoSuite) TestShortURLDelete() {
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+
+	// Удаляем сокращенную ссылку
+	suite.NoError(suite.repo.ShortURLDelete(context.Background(), suite.testShortURLs[0].UserID, suite.testShortURLs[0].ID))
+	actual, err := suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[0].ID)
+	suite.NoError(err)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	// Пытаемся удалить ссылку несуществующего пользователя
+	suite.Equal(ErrNotFound, suite.repo.ShortURLDelete(context.Background(), 9999, suite.testShortURLs[1].ID))
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[1].ID)
+	suite.NoError(err)
+	suite.Equal(false, actual.Deleted, "should not be deleted")
+
+}
+
+func (suite *memoryRepoSuite) TestShortURLDeleteBatch() {
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[2]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[3]))
+
+	// Пытаемся пометить ссылки как удаленные
+	chA, chB := make(chan string), make(chan string)
+	go func() {
+		chA <- suite.testShortURLs[0].ID
+		chA <- suite.testShortURLs[1].ID
+		chB <- suite.testShortURLs[2].ID
+		chB <- suite.testShortURLs[3].ID // <- Эта ссылка не будет удалена
+		close(chA)
+		close(chB)
+	}()
+
+	num, err := suite.repo.ShortURLDeleteBatch(context.Background(), 1, chA, chB)
+	suite.NoError(err)
+	suite.Equal(3, int(num))
+
+	// Проверяем, что нужные ссылки были помечены как удаленные
+	actual, err := suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[0].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[1].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[2].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[3].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(false, actual.Deleted, "should not be deleted")
 }
 
 func (suite *memoryRepoSuite) Test_autoIncrement() {

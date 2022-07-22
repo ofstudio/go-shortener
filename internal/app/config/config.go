@@ -1,14 +1,14 @@
 package config
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"github.com/caarlos0/env/v6"
-	"log"
+	"golang.org/x/sync/errgroup"
+	"net"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -34,29 +34,27 @@ type Config struct {
 	DatabaseDSN string `env:"DATABASE_DSN"`
 }
 
-// DefaultConfig - конфигурация по умолчанию
-var (
-	DefaultConfig = Config{
-		BaseURL:       mustParseRequestURI("http://localhost:8080/"),
+// Default - конфигурационная функция, которая возвращает конфигурацию по умолчанию.
+// Входной параметр не используется. Ошибки не возвращаются.
+func Default(_ *Config) (*Config, error) {
+	secret, err := randSecret(64)
+	if err != nil {
+		return nil, err
+	}
+	cfg := Config{
+		BaseURL:       url.URL{Scheme: "http", Host: "localhost:8080", Path: "/"},
 		ServerAddress: "0.0.0.0:8080",
 		AuthTTL:       time.Minute * 60 * 24 * 30,
-		AuthSecret:    mustRandSecret(64),
+		AuthSecret:    secret,
 		DatabaseDSN:   "",
 	}
-)
-
-// MustNewFromEnvAndCLI - инициализирует конфигурацию приложения из переменных окружения и командной строки.
-// В случае ошибки приложение завершается с ошибкой.
-func MustNewFromEnvAndCLI() *Config {
-	cfg, err := NewFromEnvAndCLI()
-	if err != nil {
-		log.Fatal(err)
+	if err = cfg.validate(); err != nil {
+		return nil, err
 	}
-	return cfg
+	return &cfg, nil
 }
 
-// NewFromEnvAndCLI - инициализирует конфигурацию приложения из переменных окружения и командной строки.
-// Значения из командной строки перекрывают значения из окружения.
+// FromCLI - конфигурационная функция, которая считывает конфигурацию приложения из переменных окружения.
 //
 // Флаги командной строки:
 //    -a <host:port> - адрес для запуска HTTP-сервера
@@ -65,20 +63,14 @@ func MustNewFromEnvAndCLI() *Config {
 //    -t <duration>  - время жизни авторизационного токена
 //	  -d <dsn>       - строка с адресом подключения к БД
 //
-// Если какие-либо значения не заданы ни в переменных окружения, ни в командной строке,
-// то используются значения по умолчанию из DefaultConfig.
-func NewFromEnvAndCLI() (*Config, error) {
-	return newFromEnvAndCLI(os.Args[1:])
+// Если какие-либо значения не заданы в командной строке, то используются значения переданные в cfg.
+func FromCLI(cfg *Config) (*Config, error) {
+	return fromCLI(cfg, os.Args[1:]...)
 }
 
-// newFromEnvAndCLI - логика для NewFromEnvAndCLI.
-func newFromEnvAndCLI(arguments []string) (*Config, error) {
-
-	cfg, err := NewFromEnv()
-	if err != nil {
-		return nil, err
-	}
-
+// fromCLI - логика для NewFromEnvAndCLI.
+// Вынесена отдельно в целях тестирования.
+func fromCLI(cfg *Config, arguments ...string) (*Config, error) {
 	// Парсим командную строку
 	cli := flag.NewFlagSet("config", flag.ExitOnError)
 	cli.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "HTTP server address")
@@ -86,14 +78,17 @@ func newFromEnvAndCLI(arguments []string) (*Config, error) {
 	cli.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File storage path (default: in-memory)")
 	cli.DurationVar(&cfg.AuthTTL, "t", cfg.AuthTTL, "Auth token TTL")
 	cli.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "Database DSN")
-	if err = cli.Parse(arguments); err != nil {
+	if err := cli.Parse(arguments); err != nil {
 		return nil, err
 	}
 
-	return validate(cfg)
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
-// NewFromEnv - инициализирует конфигурацию приложения из переменных окружения.
+// FromEnv - конфигурационная функция, которая читывает конфигурацию приложения из переменных окружения.
 //
 // Переменные окружения:
 //    SERVER_ADDRESS    - адрес для запуска HTTP-сервера
@@ -102,51 +97,62 @@ func newFromEnvAndCLI(arguments []string) (*Config, error) {
 //    AUTH_TTL          - время жизни авторизационного токена
 //	  AUTH_SECRET       - секретный ключ для подписи авторизационного токена
 //
-// Если какие-либо переменные окружения не заданы,
-// используются значения по умолчанию из DefaultConfig.
-func NewFromEnv() (*Config, error) {
-	// Параметры по умолчанию
-	cfg := DefaultConfig
+// Если какие-либо переменные окружения не заданы, то используются значения переданные в cfg.
+func FromEnv(cfg *Config) (*Config, error) {
 	// Получаем параметры из окружения
-	err := env.Parse(&cfg)
+	err := env.Parse(cfg)
 	if err != nil {
 		return nil, err
 	}
-	return validate(&cfg)
+	if err = cfg.validate(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
 }
 
-// mustParseRequestURI - парсит URL.
-// В случае ошибки приложение завершается с ошибкой.
-func mustParseRequestURI(rawURL string) url.URL {
-	u, err := url.ParseRequestURI(rawURL)
+// validate - проверяет конфигурацию на валидность
+func (c *Config) validate() error {
+	g := &errgroup.Group{}
+	g.Go(c.validateAuthSecret)
+	g.Go(c.validateBaseURL)
+	g.Go(c.validateServerAddr)
+	return g.Wait()
+}
+
+// validateBaseURL - проверяет базовый адрес сокращённого URL.
+// Возвращает ошибку в случае:
+//    - URL не содержит протокол http или https
+//    - URL содержит параметры или фрагмент.
+// Добавляет слеш в конце Path, если его нет.
+func (c *Config) validateBaseURL() error {
+	if c.BaseURL.RawQuery != "" || c.BaseURL.Fragment != "" {
+		return fmt.Errorf("base URL must not contain query parameters or fragment")
+	}
+	if c.BaseURL.Scheme != "http" && c.BaseURL.Scheme != "https" {
+		return fmt.Errorf("base URL must use http or https scheme")
+	}
+	if !strings.HasSuffix(c.BaseURL.Path, "/") {
+		c.BaseURL.Path += "/"
+	}
+	return nil
+}
+
+// validateServerAddr - проверяет адрес для запуска HTTP-сервера.
+func (c *Config) validateServerAddr() error {
+	if c.ServerAddress == "" {
+		return fmt.Errorf("empty server address")
+	}
+	_, err := net.ResolveTCPAddr("tcp", c.ServerAddress)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("invalid server address")
 	}
-	return *u
+	return nil
 }
 
-// mustRandSecret - генерирует случайный ключ.
-// В случае ошибки приложение завершается с ошибкой.
-func mustRandSecret(n int) string {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Fatal(err)
+// validateAuthSecret - проверяет чтобы ключ авторизации был не пустым.
+func (c *Config) validateAuthSecret() error {
+	if len(c.AuthSecret) == 0 {
+		return fmt.Errorf("auth secret not set")
 	}
-	return base64.RawURLEncoding.EncodeToString(b)
-}
-
-// urlParseFunc - функция для парсинга URL из флага
-func urlParseFunc(value *url.URL) func(string) error {
-	return func(rawURL string) error {
-		if value == nil {
-			return fmt.Errorf("url value is nil")
-		}
-		u, err := url.ParseRequestURI(rawURL)
-		if err != nil {
-			return err
-		}
-		*value = *u
-		return nil
-	}
+	return nil
 }

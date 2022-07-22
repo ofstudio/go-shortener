@@ -19,7 +19,7 @@ import (
 
 var _ = Describe("shortURL handlers", func() {
 	server := &ghttp.Server{}
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 	shortURLPath := ""
@@ -144,7 +144,9 @@ func testHTTPRequest(method, u, contentType, body string, cookies ...*http.Cooki
 		req.Header.Set("Content-Type", contentType)
 	}
 	for _, cookie := range cookies {
-		req.AddCookie(cookie)
+		if cookie != nil {
+			req.AddCookie(cookie)
+		}
 	}
 	res, err := c.Do(req)
 	Expect(err).ShouldNot(HaveOccurred())

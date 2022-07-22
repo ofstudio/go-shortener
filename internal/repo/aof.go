@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"io"
-	"log"
 	"os"
 	"sync"
 )
@@ -15,7 +14,7 @@ import (
 type aofRecord struct {
 	UserCreate     *models.User     `json:"user_create,omitempty"`
 	ShortURLCreate *models.ShortURL `json:"short_url_create,omitempty"`
-	// ShortURLUpdate, ShortURLDelete, etc...
+	ShortURLDelete *models.ShortURL `json:"short_url_update,omitempty"`
 }
 
 // AOFRepo - реализация Repo для хранения данных в append-only файле (AOF).
@@ -28,14 +27,6 @@ type AOFRepo struct {
 	encoder *json.Encoder
 	*MemoryRepo
 	mu sync.Mutex
-}
-
-func MustNewAOFRepo(filePath string) *AOFRepo {
-	repo, err := NewAOFRepo(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return repo
 }
 
 func NewAOFRepo(filePath string) (*AOFRepo, error) {
@@ -62,7 +53,7 @@ func (r *AOFRepo) UserCreate(ctx context.Context, user *models.User) error {
 		return err
 	}
 	if err := r.encoder.Encode(aofRecord{UserCreate: user}); err != nil {
-		r.MemoryRepo.userDelete(user.ID)
+		r.MemoryRepo.userPurge(user.ID)
 		return ErrAOFWrite
 	}
 	return nil
@@ -78,10 +69,54 @@ func (r *AOFRepo) ShortURLCreate(ctx context.Context, shortURL *models.ShortURL)
 		return err
 	}
 	if err := r.encoder.Encode(aofRecord{ShortURLCreate: shortURL}); err != nil {
-		r.MemoryRepo.shortURLDelete(shortURL.ID)
+		r.MemoryRepo.shortURLPurge(shortURL.ID)
 		return ErrAOFWrite
 	}
 	return nil
+}
+
+// ShortURLDelete - помечает удаленной короткую ссылку пользователя по ее id.
+func (r *AOFRepo) ShortURLDelete(ctx context.Context, userID uint, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err := r.MemoryRepo.ShortURLDelete(ctx, userID, id); err != nil {
+		return err
+	}
+	if err := r.encoder.Encode(aofRecord{ShortURLDelete: &models.ShortURL{ID: id, UserID: userID}}); err != nil {
+		r.MemoryRepo.shortURLRestore(id)
+		return ErrAOFWrite
+	}
+	return nil
+}
+
+// ShortURLDeleteBatch - помечает удаленными несколько сокращенных ссылок пользователя по их id.
+// Принимает на вход список каналов для передачи идентификаторов.
+// Возвращает количество удаленных сокращенных ссылок.
+func (r *AOFRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, chans ...chan string) (int64, error) {
+	// Мультиплексируем каналы chans в один канал ch.
+	ch := fanIn(ctx, chans...)
+	n := 0
+	// Читаем значения из канала и помечаем ссылки как удаленные
+loop:
+	for {
+		select {
+		// Если контекст завершился, выходим из цикла.
+		case <-ctx.Done():
+			break loop
+		case id, ok := <-ch:
+			// Если канал закрыт, выходим из цикла.
+			if !ok {
+				break loop
+			}
+			// Помечаем ссылку как удаленную.
+			if err := r.ShortURLDelete(ctx, userID, id); err != nil {
+				continue
+			}
+			// Если ссылка успешно помечена как удаленная, увеличиваем счетчик.
+			n++
+		}
+	}
+	return int64(n), nil
 }
 
 // Close - закрывает репозиторий для записи.
@@ -119,15 +154,18 @@ func loadRepoFromFile(aofPath string) (*MemoryRepo, error) {
 
 // loadRecord - загружает одну JSON-запись aofRecord в MemoryRepo.
 // При несоответствии структуры данных возвращает ErrAOFStructure.
-func loadRecord(record *aofRecord, repo *MemoryRepo) error {
-
+func loadRecord(r *aofRecord, repo *MemoryRepo) error {
 	switch {
-	case record.UserCreate != nil:
-		if err := repo.UserCreate(context.Background(), record.UserCreate); err != nil {
+	case r.UserCreate != nil:
+		if err := repo.UserCreate(context.Background(), r.UserCreate); err != nil {
 			return err
 		}
-	case record.ShortURLCreate != nil:
-		if err := repo.ShortURLCreate(context.Background(), record.ShortURLCreate); err != nil {
+	case r.ShortURLCreate != nil:
+		if err := repo.ShortURLCreate(context.Background(), r.ShortURLCreate); err != nil {
+			return err
+		}
+	case r.ShortURLDelete != nil:
+		if err := repo.ShortURLDelete(context.Background(), r.ShortURLDelete.UserID, r.ShortURLDelete.ID); err != nil {
 			return err
 		}
 	default:

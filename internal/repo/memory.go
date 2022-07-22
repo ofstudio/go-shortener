@@ -91,9 +91,9 @@ func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]mode
 	if !ok {
 		return nil, nil
 	}
-	result := make([]models.ShortURL, len(index))
-	for i, id := range index {
-		result[i] = r.shortURLs[id]
+	result := make([]models.ShortURL, 0, len(index))
+	for _, id := range index {
+		result = append(result, r.shortURLs[id])
 	}
 	return result, nil
 }
@@ -110,24 +110,70 @@ func (r *MemoryRepo) ShortURLGetByOriginalURL(_ context.Context, originalURL str
 	return nil, ErrNotFound
 }
 
+// ShortURLDeleteBatch - помечает удаленными несколько сокращенных ссылок пользователя по их id.
+// Принимает на вход список каналов для передачи идентификаторов.
+// Возвращает количество удаленных сокращенных ссылок.
+func (r *MemoryRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, chans ...chan string) (int64, error) {
+	// Мультиплексируем каналы chans в один канал ch.
+	ch := fanIn(ctx, chans...)
+	n := 0
+	// Читаем значения из канала и помечаем ссылки как удаленные
+loop:
+	for {
+		select {
+		// Если контекст завершился, выходим из цикла.
+		case <-ctx.Done():
+			break loop
+		case id, ok := <-ch:
+			// Если канал закрыт, выходим из цикла.
+			if !ok {
+				break loop
+			}
+			// Помечаем ссылку как удаленную.
+			if err := r.ShortURLDelete(ctx, userID, id); err != nil {
+				continue
+			}
+			// Если ссылка успешно помечена как удаленная, увеличиваем счетчик.
+			n++
+		}
+	}
+	return int64(n), nil
+}
+
+// ShortURLDelete - помечает удаленной короткую ссылку пользователя по ее id.
+func (r *MemoryRepo) ShortURLDelete(_ context.Context, userID uint, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	shortURL, exist := r.shortURLs[id]
+	if !exist {
+		return ErrNotFound
+	}
+	if shortURL.UserID != userID {
+		return ErrNotFound
+	}
+	shortURL.Deleted = true
+	r.shortURLs[id] = shortURL
+	return nil
+}
+
 // Close - закрывает репозиторий для записи.
 // В этой реализации не делает ничего.
 func (r *MemoryRepo) Close() error {
 	return nil
 }
 
-// userDelete - удаляет пользователя, в тч из индекса ссылок пользователя.
+// userPurge - удаляет пользователя, в тч из индекса ссылок пользователя.
 // Вызывается при неудачной попытке создания пользователя в AOFRepo.UserCreate.
-func (r *MemoryRepo) userDelete(id uint) {
+func (r *MemoryRepo) userPurge(id uint) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.users, id)
 	delete(r.userShortURLs, id)
 }
 
-// shortURLDelete - удаляет короткую ссылку, в тч из индекса ссылок пользователя.
+// shortURLPurge - удаляет короткую ссылку, в тч из индекса ссылок пользователя.
 // Вызывается при неудачной попытке создания короткой ссылки в AOFRepo.ShortURLCreate.
-func (r *MemoryRepo) shortURLDelete(id string) {
+func (r *MemoryRepo) shortURLPurge(id string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if shortURL, exist := r.shortURLs[id]; exist {
@@ -140,6 +186,17 @@ func (r *MemoryRepo) shortURLDelete(id string) {
 	}
 }
 
+// shortURLRestore - восстанавливает короткую ссылку.
+// Вызывается при неудачной попытке создания короткой ссылки в AOFRepo.ShortURLDeleteBatch.
+func (r *MemoryRepo) shortURLRestore(id string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if shortURL, exist := r.shortURLs[id]; exist {
+		shortURL.Deleted = false
+		r.shortURLs[id] = shortURL
+	}
+}
+
 // autoIncrement - устанавливает значение id и next
 // таким образом, чтобы next всегда был больше id.
 //
@@ -149,7 +206,6 @@ func (r *MemoryRepo) shortURLDelete(id string) {
 //    - Ситуации с next == 0 не обрабатываются.
 //
 func autoIncrement(id, next *uint) {
-
 	switch {
 	case id == nil || next == nil:
 		return

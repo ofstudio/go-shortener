@@ -25,15 +25,15 @@ func (suite *configSuite) TestNewFromEnv_all() {
 		"FILE_STORAGE_PATH": "/tmp/shortener.aof",
 	})
 
-	cfg, err := NewFromEnv()
+	actualCfg, err := FromEnv(suite.defaultCfg())
 	suite.NoError(err)
 
 	// Проверяем, что все переменные окружения прочитаны
-	suite.Equal(time.Hour*1, cfg.AuthTTL)
-	suite.Equal("secret", cfg.AuthSecret)
-	suite.Equal(mustParseRequestURI("https://example.com/"), cfg.BaseURL)
-	suite.Equal("localhost:8888", cfg.ServerAddress)
-	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+	suite.Equal(time.Hour*1, actualCfg.AuthTTL)
+	suite.Equal("secret", actualCfg.AuthSecret)
+	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
+	suite.Equal("localhost:8888", actualCfg.ServerAddress)
+	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
 }
 
 func (suite *configSuite) TestNewFromEnv_partial() {
@@ -44,17 +44,18 @@ func (suite *configSuite) TestNewFromEnv_partial() {
 		"FILE_STORAGE_PATH": "/tmp/shortener.aof",
 	})
 
-	cfg, err := NewFromEnv()
+	defaultCfg := suite.defaultCfg()
+	actualCfg, err := FromEnv(defaultCfg)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны заданные переменные окружения
-	suite.Equal(time.Hour*1, cfg.AuthTTL)
-	suite.Equal("https://example.com/", cfg.BaseURL.String())
-	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
+	suite.Equal(time.Hour*1, actualCfg.AuthTTL)
+	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
+	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
 
 	// Проверяем, что остальные параметры установлены в значения по умолчанию
-	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)
-	suite.Equal(DefaultConfig.ServerAddress, cfg.ServerAddress)
+	suite.Equal(defaultCfg.AuthSecret, actualCfg.AuthSecret)
+	suite.Equal(defaultCfg.ServerAddress, actualCfg.ServerAddress)
 }
 
 func (suite *configSuite) TestNewFromEnvAndCLI_all() {
@@ -66,17 +67,18 @@ func (suite *configSuite) TestNewFromEnvAndCLI_all() {
 		"-t", "1h",
 	}
 
-	cfg, err := newFromEnvAndCLI(args)
+	defaultCfg := suite.defaultCfg()
+	actualCfg, err := fromCLI(defaultCfg, args...)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны все заданные флаги
-	suite.Equal("127.0.0.0:8888", cfg.ServerAddress)
-	suite.Equal("https://example.com/", cfg.BaseURL.String())
-	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
-	suite.Equal(time.Hour*1, cfg.AuthTTL)
+	suite.Equal("127.0.0.0:8888", actualCfg.ServerAddress)
+	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
+	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
+	suite.Equal(time.Hour*1, actualCfg.AuthTTL)
 
 	// Проверяем, что остальные параметры установлены в значения по умолчанию
-	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)
+	suite.Equal(defaultCfg.AuthSecret, actualCfg.AuthSecret)
 }
 
 func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
@@ -91,53 +93,57 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 		"BASE_URL":          "https://example.com/",
 	})
 
-	cfg, err := newFromEnvAndCLI(args)
+	defaultCfg := suite.defaultCfg()
+	actualCfg, err := FromEnv(defaultCfg)
+	suite.NoError(err)
+	actualCfg, err = fromCLI(actualCfg, args...)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны заданные флаги
-	suite.Equal("0.0.0.0:3000", cfg.ServerAddress)
-	suite.Equal("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", cfg.DatabaseDSN)
+	suite.Equal("0.0.0.0:3000", actualCfg.ServerAddress)
+	suite.Equal("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", actualCfg.DatabaseDSN)
 
 	// Проверяем, что прочитаны заданные переменные окружения
-	suite.Equal("/tmp/shortener.aof", cfg.FileStoragePath)
-	suite.Equal("https://example.com/", cfg.BaseURL.String())
+	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
+	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
 
 	// Проверяем, что остальные параметры установлены в значения по умолчанию
-	suite.Equal(DefaultConfig.AuthSecret, cfg.AuthSecret)
-	suite.Equal(DefaultConfig.AuthTTL, cfg.AuthTTL)
+	suite.Equal(defaultCfg.AuthSecret, actualCfg.AuthSecret)
+	suite.Equal(defaultCfg.AuthTTL, actualCfg.AuthTTL)
 }
 
 func (suite *configSuite) TestValidateBaseURL() {
+
 	// Проверяем на невалидный URL
-	_, err := newFromEnvAndCLI([]string{"-a", "not-a-valid-url"})
+	_, err := fromCLI(suite.defaultCfg(), []string{"-a", "not-a-valid-url"}...)
 	suite.Error(err)
 	suite.setenv(map[string]string{"BASE_URL": "ftps://example.com/"})
-	_, err = newFromEnvAndCLI([]string{})
+	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
 
 	// Проверяем, что к URL добавляется слеш в конце
 	suite.setenv(map[string]string{"BASE_URL": "https://example.com"})
-	cfg, err := newFromEnvAndCLI([]string{})
+	actualCfg, err := FromEnv(suite.defaultCfg())
 	suite.NoError(err)
-	suite.Equal("https://example.com/", cfg.BaseURL.String())
-	cfg, err = newFromEnvAndCLI([]string{"-b", "https://example.com/subpath"})
+	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
+	actualCfg, err = fromCLI(suite.defaultCfg(), []string{"-b", "https://example.com/subpath"}...)
 	suite.NoError(err)
-	suite.Equal("https://example.com/subpath/", cfg.BaseURL.String())
+	suite.Equal("https://example.com/subpath/", actualCfg.BaseURL.String())
 
 	// Проверяем что не допускаются URL с параметрами или фрагментами
 	suite.setenv(map[string]string{"BASE_URL": "https://example.com/subpath?param=1"})
-	_, err = newFromEnvAndCLI([]string{})
+	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
-	_, err = newFromEnvAndCLI([]string{"-b", "https://example.com/subpath#fragment"})
+	_, err = fromCLI(suite.defaultCfg(), []string{"-b", "https://example.com/subpath#fragment"}...)
 	suite.Error(err)
 }
 
 func (suite *configSuite) TestValidateServerAddress() {
 	// Проверяем на невалидный адрес сервера
-	_, err := newFromEnvAndCLI([]string{"-a", "not-a-valid-tcp-address"})
+	_, err := fromCLI(suite.defaultCfg(), []string{"-a", "not-a-valid-tcp-address"}...)
 	suite.Error(err)
 	suite.setenv(map[string]string{"SERVER_ADDRESS": "0.0.0.0:100000"})
-	_, err = newFromEnvAndCLI([]string{})
+	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
 }
 
@@ -151,4 +157,10 @@ func (suite *configSuite) setenv(vars map[string]string) {
 	for k, v := range vars {
 		suite.NoError(os.Setenv(k, v))
 	}
+}
+
+func (suite *configSuite) defaultCfg() *Config {
+	cfg, err := Default(nil)
+	suite.NoError(err)
+	return cfg
 }

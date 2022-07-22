@@ -10,3 +10,14 @@ services:
       - POSTGRES_DB=autotest
     volumes:
       - ../../data/pg_autotest:/var/lib/postgresql/data
+
+  pg_playground:
+    image: postgres:14-alpine
+    ports:
+      - "6432:5432"
+    environment:
+      - POSTGRES_USER=playground
+      - POSTGRES_PASSWORD=playground
+      - POSTGRES_DB=playground
+    volumes:
+      - ../../data/pg_playground:/var/lib/postgresql/data

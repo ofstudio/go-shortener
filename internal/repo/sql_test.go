@@ -21,7 +21,8 @@ func TestSQLRepoSuite(t *testing.T) {
 
 type sqlRepoSuite struct {
 	suite.Suite
-	repo *SQLRepo
+	repo          *SQLRepo
+	testShortURLs []*models.ShortURL
 }
 
 func (suite *sqlRepoSuite) SetupTest() {
@@ -29,6 +30,13 @@ func (suite *sqlRepoSuite) SetupTest() {
 	suite.repo, err = NewSQLRepo(dsn)
 	suite.NoError(err)
 	suite.NotNil(suite.repo)
+	suite.testShortURLs = []*models.ShortURL{
+		{ID: "12345", OriginalURL: "https://www.google.com", UserID: 1},
+		{ID: "67890", OriginalURL: "https://www.baidu.com", UserID: 1},
+		{ID: "aaaaa", OriginalURL: "https://www.qq.com", UserID: 1},
+		{ID: "bbbbb", OriginalURL: "https://www.taobao.com", UserID: 2},
+	}
+
 }
 
 func (suite *sqlRepoSuite) TearDownTest() {
@@ -52,11 +60,11 @@ func (suite *sqlRepoSuite) TestUserCreate() {
 }
 
 func (suite *sqlRepoSuite) TestUserGetByID() {
-	user1 := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user1))
-	user2, err := suite.repo.UserGetByID(context.Background(), user1.ID)
+	user := &models.User{}
+	suite.NoError(suite.repo.UserCreate(context.Background(), user))
+	actual, err := suite.repo.UserGetByID(context.Background(), user.ID)
 	suite.NoError(err)
-	suite.Equal(user1.ID, user2.ID)
+	suite.Equal(user.ID, actual.ID)
 }
 
 func (suite *sqlRepoSuite) TestUserGetByID_NotFound() {
@@ -65,29 +73,23 @@ func (suite *sqlRepoSuite) TestUserGetByID_NotFound() {
 }
 
 func (suite *sqlRepoSuite) TestShortURLCreate() {
-	user := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user))
-	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
 }
 
 func (suite *sqlRepoSuite) TestShortURLCreate_Duplicate() {
-	user := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user))
-	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
-	err := suite.repo.ShortURLCreate(context.Background(), shortURL)
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	err := suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0])
 	suite.Equal(ErrDuplicate, err)
 }
 
 func (suite *sqlRepoSuite) TestShortURLGetByID() {
-	user := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user))
-	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
-	shortURL2, err := suite.repo.ShortURLGetByID(context.Background(), shortURL.ID)
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	actual, err := suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[0].ID)
 	suite.NoError(err)
-	suite.Equal(shortURL, shortURL2)
+	suite.Equal(suite.testShortURLs[0], actual)
 }
 
 func (suite *sqlRepoSuite) TestShortURLGetByID_NotFound() {
@@ -96,13 +98,10 @@ func (suite *sqlRepoSuite) TestShortURLGetByID_NotFound() {
 }
 
 func (suite *sqlRepoSuite) TestShortURLGetByUserID() {
-	user := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user))
-	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
-	shortURL2 := &models.ShortURL{ID: "bbb", OriginalURL: "https://another.com", UserID: user.ID}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL2))
-	shortURLs, err := suite.repo.ShortURLGetByUserID(context.Background(), user.ID)
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+	shortURLs, err := suite.repo.ShortURLGetByUserID(context.Background(), suite.testShortURLs[0].UserID)
 	suite.NoError(err)
 	suite.Equal(2, len(shortURLs))
 }
@@ -122,18 +121,81 @@ func (suite *sqlRepoSuite) TestShortURLGetByUserID_NoURLs() {
 }
 
 func (suite *sqlRepoSuite) TestShortURLGetByURL() {
-	user := &models.User{}
-	suite.NoError(suite.repo.UserCreate(context.Background(), user))
-	shortURL := &models.ShortURL{ID: "aaa", OriginalURL: "https://example.com", UserID: user.ID}
-	suite.NoError(suite.repo.ShortURLCreate(context.Background(), shortURL))
-	shortURL2, err := suite.repo.ShortURLGetByOriginalURL(context.Background(), shortURL.OriginalURL)
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	actual, err := suite.repo.ShortURLGetByOriginalURL(context.Background(), suite.testShortURLs[0].OriginalURL)
 	suite.NoError(err)
-	suite.Equal(shortURL, shortURL2)
+	suite.Equal(suite.testShortURLs[0], actual)
 }
 
 func (suite *sqlRepoSuite) TestShortURLGetByURL_NotFound() {
 	_, err := suite.repo.ShortURLGetByOriginalURL(context.Background(), "https://example.com")
 	suite.Equal(ErrNotFound, err)
+}
+
+func (suite *sqlRepoSuite) TestShortURLDelete() {
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+
+	// Помечаем ссылку как удаленную
+	suite.NoError(suite.repo.ShortURLDelete(context.Background(), suite.testShortURLs[0].UserID, suite.testShortURLs[0].ID))
+	// Проверяем, что она помечена как удаленная
+	actual, err := suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[0].ID)
+	suite.NoError(err)
+	suite.Equal(true, actual.Deleted)
+
+	// Пробуем пометить как удаленную ссылку другого пользователя
+	suite.Equal(ErrNotFound, suite.repo.ShortURLDelete(context.Background(), 9999, suite.testShortURLs[1].ID))
+	// Проверяем, что она не помечена как удаленная
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[1].ID)
+	suite.NoError(err)
+	suite.Equal(false, actual.Deleted)
+}
+
+func (suite *sqlRepoSuite) TestShortURLDeleteBatch() {
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[2]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[3]))
+
+	// Пытаемся пометить ссылки как удаленные
+	chA, chB := make(chan string), make(chan string)
+	go func() {
+		chA <- suite.testShortURLs[0].ID
+		chA <- suite.testShortURLs[1].ID
+		chB <- suite.testShortURLs[2].ID
+		chB <- suite.testShortURLs[3].ID // <- Эта ссылка не будет удалена
+		close(chA)
+		close(chB)
+	}()
+
+	num, err := suite.repo.ShortURLDeleteBatch(context.Background(), 1, chA, chB)
+	suite.NoError(err)
+	suite.Equal(3, int(num))
+
+	// Проверяем, что нужные ссылки были помечены как удаленные
+	actual, err := suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[0].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[1].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[2].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(true, actual.Deleted, "should be deleted")
+
+	actual, err = suite.repo.ShortURLGetByID(context.Background(), suite.testShortURLs[3].ID)
+	suite.NoError(err)
+	suite.NotNil(actual)
+	suite.Equal(false, actual.Deleted, "should not be deleted")
 }
 
 func testIsDBAvailable(dsn string) bool {

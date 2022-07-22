@@ -9,6 +9,7 @@ const URLMaxLen = 4096
 // ShortURL - модель сокращенной ссылки
 type ShortURL struct {
 	ID          string `json:"id"`
-	OriginalURL string `json:"original_url"`
+	OriginalURL string `json:"original_url,omitempty"`
 	UserID      uint   `json:"user_id"`
+	Deleted     bool   `json:"-"`
 }

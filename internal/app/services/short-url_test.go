@@ -21,7 +21,7 @@ type shortURLServiceSuite struct {
 func (suite *shortURLServiceSuite) SetupTest() {
 	var err error
 	os.Clearenv()
-	suite.cfg, err = config.NewFromEnv()
+	suite.cfg, _ = config.Default(nil)
 	suite.Require().NoError(err)
 	r := repo.NewMemoryRepo()
 	suite.ShortURLService = NewShortURLService(suite.cfg, r)

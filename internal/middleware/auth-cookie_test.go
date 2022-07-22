@@ -15,7 +15,7 @@ import (
 var _ = Describe("AuthCookie Middleware", func() {
 	var cookie *http.Cookie
 	server := &ghttp.Server{}
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 
 	BeforeEach(func() {
 		repository := repo.NewMemoryRepo()

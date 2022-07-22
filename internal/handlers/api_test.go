@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
@@ -14,12 +15,13 @@ import (
 	"github.com/onsi/gomega/ghttp"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
-var _ = Describe("API POST /shorten ", func() {
+var _ = Describe("POST /shorten ", func() {
 	var server *ghttp.Server
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 
@@ -112,9 +114,9 @@ var _ = Describe("API POST /shorten ", func() {
 	})
 })
 
-var _ = Describe("API POST /shorten/batch", func() {
+var _ = Describe("POST /shorten/batch", func() {
 	var server *ghttp.Server
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 
@@ -159,9 +161,9 @@ var _ = Describe("API POST /shorten/batch", func() {
 	})
 })
 
-var _ = Describe("API GET /user/urls", func() {
+var _ = Describe("GET /user/urls", func() {
 	var server *ghttp.Server
-	cfg := &config.DefaultConfig
+	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
 	srv := services.NewContainer(cfg, repository)
 	var cookie *http.Cookie
@@ -220,4 +222,81 @@ var _ = Describe("API GET /user/urls", func() {
 			Expect(res.StatusCode).Should(Equal(http.StatusNoContent))
 		})
 	})
+})
+
+var _ = Describe("DELETE /user/urls", func() {
+	var server *ghttp.Server
+	var cookie *http.Cookie
+	cfg, _ := config.Default(nil)
+	repository := repo.NewMemoryRepo()
+	srv := services.NewContainer(cfg, repository)
+
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+		cfg.BaseURL = testParseURL(server.URL() + "/")
+		r := chi.NewRouter()
+		r.Use(middleware.NewAuthCookie(srv).Handler)
+		r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
+		r.Mount("/api", handlers.NewAPIHandlers(srv).Routes())
+		server.AppendHandlers(r.ServeHTTP)
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
+
+	When("successful batch delete", func() {
+		urls := []string{
+			"https://www.google.com",
+			"https://www.apple.com",
+			"https://www.microsoft.com",
+		}
+		ids := make([]string, len(urls))
+		for i, u := range urls {
+			func(i int, u string) {
+				It("should create 3 urls", func() {
+					res := testHTTPRequest("POST", server.URL()+"/api/shorten", "application/json", fmt.Sprintf(`{"url":"%s"}`, u), cookie)
+					Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+					if cookie == nil {
+						cookie = res.Cookies()[0]
+					}
+					resBody, err := ioutil.ReadAll(res.Body)
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+					resJSON := &struct {
+						Result string `json:"result"`
+					}{}
+					Expect(json.Unmarshal(resBody, resJSON)).Should(Succeed())
+					Expect(resJSON.Result).ShouldNot(BeEmpty())
+					su, err := url.Parse(resJSON.Result)
+					Expect(err).ShouldNot(HaveOccurred())
+					ids[i] = su.Path[1:]
+				})
+			}(i, u)
+		}
+		It("should delete 2 urls", func() {
+			body := fmt.Sprintf(`["%s", "%s"]`, ids[0], ids[1])
+			res := testHTTPRequest("DELETE", server.URL()+"/api/user/urls", "application/json", body, cookie)
+			Expect(res.StatusCode).Should(Equal(http.StatusAccepted))
+
+		})
+		It("should return Gone for deleted url", func() {
+			res := testHTTPRequest("GET", server.URL()+"/"+ids[0], "", "", cookie)
+			Expect(res.StatusCode).Should(Equal(http.StatusGone))
+		})
+		It("should return Gone for deleted url", func() {
+			res := testHTTPRequest("GET", server.URL()+"/"+ids[1], "", "", cookie)
+			Expect(res.StatusCode).Should(Equal(http.StatusGone))
+		})
+		It("should return list of remaining urls", func() {
+			res := testHTTPRequest("GET", server.URL()+"/api/user/urls", "", "", cookie)
+			Expect(res.StatusCode).Should(Equal(http.StatusOK))
+			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
+			resBody, err := ioutil.ReadAll(res.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+			Expect(resBody).Should(ContainSubstring(ids[2]))
+		})
+	})
+
 })

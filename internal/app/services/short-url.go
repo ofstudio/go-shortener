@@ -61,6 +61,10 @@ func (s ShortURLService) GetByID(ctx context.Context, id string) (*models.ShortU
 	} else if err != nil {
 		return nil, ErrInternal
 	}
+	// Проверяем, не помечена ли ссылка как удаленная
+	if shortURL.Deleted {
+		return nil, ErrDeleted
+	}
 	return shortURL, nil
 }
 
@@ -72,7 +76,14 @@ func (s ShortURLService) GetByUserID(ctx context.Context, id uint) ([]models.Sho
 	} else if err != nil {
 		return nil, ErrInternal
 	}
-	return shortURLs, nil
+	// Отфильтровываем ссылки, помеченные как удаленные
+	var result []models.ShortURL
+	for _, shortURL := range shortURLs {
+		if !shortURL.Deleted {
+			result = append(result, shortURL)
+		}
+	}
+	return result, nil
 }
 
 // GetByOriginalURL - возвращает ShortURL по его оригинальному URL
@@ -83,7 +94,30 @@ func (s ShortURLService) GetByOriginalURL(ctx context.Context, rawURL string) (*
 	} else if err != nil {
 		return nil, ErrInternal
 	}
+	// Проверяем, не помечена ли ссылка как удаленная
+	if shortURL.Deleted {
+		return nil, ErrDeleted
+	}
 	return shortURL, nil
+}
+
+// DeleteBatch - помечает удаленными несколько сокращенных ссылок пользователя по их id.
+// Принимает на вход канал идентификаторов для удаления
+func (s ShortURLService) DeleteBatch(ctx context.Context, userID uint, ids []string) error {
+	// Демультиплексируем слайс идентификаторов на каналы
+	ch := make(chan string)
+	go func() {
+		for _, id := range ids {
+			ch <- id
+		}
+		close(ch)
+	}()
+
+	chans := fanOut(ctx, ch)
+	if _, err := s.repo.ShortURLDeleteBatch(ctx, userID, chans...); err != nil {
+		return ErrInternal
+	}
+	return nil
 }
 
 func (s ShortURLService) Resolve(id string) string {
