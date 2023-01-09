@@ -3,7 +3,7 @@ package middleware_test
 import (
 	"bytes"
 	"compress/gzip"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -28,7 +28,7 @@ var _ = Describe("Decompressor Middleware", func() {
 		// echo handler
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			defer Expect(r.Body.Close()).Should(Succeed())
 			Expect(w.Write(body)).Error().ShouldNot(HaveOccurred())
@@ -75,7 +75,7 @@ func testDecompressorRequest(u string, body []byte, compress bool) []byte {
 	res, err := http.DefaultClient.Do(req)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(res.StatusCode).Should(Equal(http.StatusOK))
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(res.Body.Close()).Should(Succeed())
 	return body

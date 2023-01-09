@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,7 +45,7 @@ var _ = Describe("POST /shorten ", func() {
 			res := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.google.com"}`)
 			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
 			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
-			resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := io.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 			resJSON := &struct {
@@ -102,13 +102,13 @@ var _ = Describe("POST /shorten ", func() {
 		It("should return 409", func() {
 			res1 := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.duplicate.com"}`)
 			Expect(res1.StatusCode).Should(Equal(http.StatusCreated))
-			resBody1, err := ioutil.ReadAll(res1.Body)
+			resBody1, err := io.ReadAll(res1.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			_ = res1.Body.Close()
 
 			res2 := testHTTPRequest("POST", server.URL()+"/shorten", "application/json", `{"url":"https://www.duplicate.com"}`)
 			Expect(res2.StatusCode).Should(Equal(http.StatusConflict))
-			resBody2, err := ioutil.ReadAll(res2.Body)
+			resBody2, err := io.ReadAll(res2.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			_ = res2.Body.Close()
 			Expect(resBody1).Should(MatchJSON(resBody2))
@@ -144,7 +144,7 @@ var _ = Describe("POST /shorten/batch", func() {
 			res := testHTTPRequest("POST", server.URL()+"/shorten/batch", "application/json", body)
 			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
 			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
-			resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := io.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 			resJSON := make([]struct {
@@ -197,7 +197,7 @@ var _ = Describe("GET /user/urls", func() {
 			res := testHTTPRequest("GET", server.URL()+"/user/urls", "", "", cookie)
 			Expect(res.StatusCode).Should(Equal(http.StatusOK))
 			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
-			resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := io.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 			var resJSON []struct {
@@ -262,7 +262,7 @@ var _ = Describe("DELETE /user/urls", func() {
 					if cookie == nil {
 						cookie = res.Cookies()[0]
 					}
-					resBody, err := ioutil.ReadAll(res.Body)
+					resBody, err := io.ReadAll(res.Body)
 					Expect(err).ShouldNot(HaveOccurred())
 					Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 					resJSON := &struct {
@@ -294,7 +294,7 @@ var _ = Describe("DELETE /user/urls", func() {
 			res := testHTTPRequest("GET", server.URL()+"/api/user/urls", "", "", cookie)
 			Expect(res.StatusCode).Should(Equal(http.StatusOK))
 			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
-			resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := io.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 			Expect(resBody).Should(ContainSubstring(ids[2]))

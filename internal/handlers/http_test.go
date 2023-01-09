@@ -1,7 +1,7 @@
 package handlers_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -43,7 +43,7 @@ var _ = Describe("shortURL handlers", func() {
 		It("successfully create short url", func() {
 			res := testHTTPRequest("POST", server.URL()+"/", "", "https://www.google.com")
 			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
-			resBody, err := ioutil.ReadAll(res.Body)
+			resBody, err := io.ReadAll(res.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
 			Expect(string(resBody)).ShouldNot(BeEmpty())
@@ -103,12 +103,12 @@ var _ = Describe("shortURL handlers", func() {
 		It("returns 409 error", func() {
 			res1 := testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
 			Expect(res1.StatusCode).Should(Equal(http.StatusCreated))
-			resBody1, err := ioutil.ReadAll(res1.Body)
+			resBody1, err := io.ReadAll(res1.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			_ = res1.Body.Close()
 			res2 := testHTTPRequest("POST", server.URL()+"/", "", "https://www.duplicate.com")
 			Expect(res2.StatusCode).Should(Equal(http.StatusConflict))
-			resBody2, err := ioutil.ReadAll(res2.Body)
+			resBody2, err := io.ReadAll(res2.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			_ = res2.Body.Close()
 			Expect(string(resBody1)).Should(Equal(string(resBody2)))
