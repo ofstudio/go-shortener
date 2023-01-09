@@ -31,10 +31,12 @@ func (h APIHandlers) Routes() chi.Router {
 }
 
 // shortURLCreate - принимает в теле запроса строку URL для сокращения:
-//    {"url":"<url>"}
+//
+//	{"url":"<url>"}
 //
 // Возвращает ответ http.StatusCreated (201) и сокращенный URL в виде JSON:
-//    {"result":"<shorten_url>"}
+//
+//	{"result":"<shorten_url>"}
 func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	// Структура запроса
 	type reqType struct {
@@ -81,21 +83,24 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // shortURLCreateBatch - принимает в теле запроса список строк URL для сокращения:
-//    [
-//        {
-//            "correlation_id": "<строковый идентификатор>",
-//            "original_url": "<URL для сокращения>"
-//        },
-//        ...
-//    ]
+//
+//	[
+//	    {
+//	        "correlation_id": "<строковый идентификатор>",
+//	        "original_url": "<URL для сокращения>"
+//	    },
+//	    ...
+//	]
+//
 // Возвращает ответ http.StatusCreated (201) и сокращенный URL в виде JSON:
-//    [
-//        {
-//            "correlation_id": "<строковый идентификатор из объекта запроса>",
-//            "short_url": "<shorten_url>"
-//        },
-//        ...
-//    ]
+//
+//	[
+//	    {
+//	        "correlation_id": "<строковый идентификатор из объекта запроса>",
+//	        "short_url": "<shorten_url>"
+//	    },
+//	    ...
+//	]
 func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
 	type reqType struct {
@@ -142,7 +147,9 @@ func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request)
 
 // shortURLDeleteBatch - помечает ссылки пользователя как удаленные.
 // Формат запроса:
-//    [ "a", "b", "c", "d", ...]
+//
+//	[ "a", "b", "c", "d", ...]
+//
 // Возвращает ответ http.StatusAccepted (202)
 func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
@@ -175,13 +182,14 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 
 // shortURLGetByUserID - возвращает список сокращенных ссылок пользователя.
 // Формат ответа:
-//    [
-//        {
-//            "short_url": "http://...",
-//            "original_url": "http://..."
-//        },
-//        ...
-//    ]
+//
+//	[
+//	    {
+//	        "short_url": "http://...",
+//	        "original_url": "http://..."
+//	    },
+//	    ...
+//	]
 func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request) {
 	// Структура ответа
 	type resType struct {

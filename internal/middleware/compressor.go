@@ -7,9 +7,10 @@ import (
 
 // Compressor - реализация middleware для сжатия ответов с помощью gzip.
 // Данные будут сжиматься при соблюдении следующих условий:
-//    1. Заголовок запроса Content-Encoding содержит gzip
-//    2. Размер данных для сжатия больше или равен minSize.
-//    3. Тип данных будет включен в список allowedTypes.
+//  1. Заголовок запроса Content-Encoding содержит gzip
+//  2. Размер данных для сжатия больше или равен minSize.
+//  3. Тип данных будет включен в список allowedTypes.
+//
 // Если хотя бы одно из условий не выполняется, то данные не будут сжаты.
 type Compressor struct {
 	allowedTypes map[string]struct{} // Список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
@@ -19,8 +20,9 @@ type Compressor struct {
 
 // NewCompressor - создаёт новый компрессор.
 // Параметры:
-//    minSize - минимальный размер данных для сжатия
-//    level - уровень сжатия данных (например, gzip.BestSpeed)
+//
+//	minSize - минимальный размер данных для сжатия
+//	level - уровень сжатия данных (например, gzip.BestSpeed)
 func NewCompressor(minSize int64, level int) *Compressor {
 	return &Compressor{
 		allowedTypes: make(map[string]struct{}),

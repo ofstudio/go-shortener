@@ -201,11 +201,10 @@ func (r *MemoryRepo) shortURLRestore(id string) {
 // autoIncrement - устанавливает значение id и next
 // таким образом, чтобы next всегда был больше id.
 //
-//    - Если id больше next, то next будет установлен в id + 1.
-//    - Если id = 0, то id будет установлен в next, а next увеличится на 1.
-//    - Если id меньше next, то id и next не изменяются.
-//    - Ситуации с next == 0 не обрабатываются.
-//
+//   - Если id больше next, то next будет установлен в id + 1.
+//   - Если id = 0, то id будет установлен в next, а next увеличится на 1.
+//   - Если id меньше next, то id и next не изменяются.
+//   - Ситуации с next == 0 не обрабатываются.
 func autoIncrement(id, next *uint) {
 	switch {
 	case id == nil || next == nil:

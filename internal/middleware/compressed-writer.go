@@ -25,8 +25,9 @@ const NoStatusCode = -1
 
 // CompressedWriter - компрессор для gzip-сжатия данных.
 // Данные будут сжиматься при соблюдении следующих условий:
-//    1. Размер данных для сжатия больше или равен minSize.
-//    2. Тип данных будет включен в список allowedTypes.
+//  1. Размер данных для сжатия больше или равен minSize.
+//  2. Тип данных будет включен в список allowedTypes.
+//
 // Если хотя бы одно из условий не выполняется, то данные не будут сжаты.
 type CompressedWriter struct {
 	// Состояние компрессора.
@@ -70,10 +71,11 @@ type CompressedWriter struct {
 
 // NewCompressedWriter - создает новый поток для сжатия данных.
 // Параметры:
-//    responseWriter - результирующий записывающий поток.
-//    minSize - минимальный размер данных для сжатия.
-//    level - уровень сжатия данных.
-//    allowedTypes - список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
+//
+//	responseWriter - результирующий записывающий поток.
+//	minSize - минимальный размер данных для сжатия.
+//	level - уровень сжатия данных.
+//	allowedTypes - список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
 func NewCompressedWriter(responseWriter http.ResponseWriter, minSize int64, level int, allowedTypes map[string]struct{}) *CompressedWriter {
 	return &CompressedWriter{
 		state:          stateUnset,
