@@ -3,11 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/middleware"
 	"mime"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/ofstudio/go-shortener/internal/app/services"
+	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
 // APIHandlers - HTTP-хендлеры для JSON API

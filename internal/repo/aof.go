@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/ofstudio/go-shortener/internal/models"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 // aofRecord - структура одной JSON-записи для хранения в AOF-файле.

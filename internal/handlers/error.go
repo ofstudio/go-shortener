@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"errors"
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"net/http"
+
+	"github.com/ofstudio/go-shortener/internal/app/services"
 )
 
 var (

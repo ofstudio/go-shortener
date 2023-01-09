@@ -3,13 +3,14 @@ package config
 import (
 	"flag"
 	"fmt"
-	"github.com/caarlos0/env/v6"
-	"golang.org/x/sync/errgroup"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/caarlos0/env/v6"
+	"golang.org/x/sync/errgroup"
 )
 
 // Config - конфигурация приложения

@@ -3,11 +3,12 @@ package services
 import (
 	"context"
 	"errors"
+	"net/url"
+
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
 	"github.com/ofstudio/go-shortener/pkg/shortid"
-	"net/url"
 )
 
 // ShortURLService - бизнес-логика для сокращенных ссылок

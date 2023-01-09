@@ -1,9 +1,10 @@
 package handlers_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestHandlersSuite(t *testing.T) {

@@ -1,20 +1,22 @@
 package handlers_test
 
 import (
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/go-chi/chi/v5"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/handlers"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 var _ = Describe("shortURL handlers", func() {

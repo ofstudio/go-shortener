@@ -3,13 +3,15 @@ package middleware_test
 import (
 	"bytes"
 	"compress/gzip"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/ofstudio/go-shortener/internal/middleware"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"io/ioutil"
-	"net/http"
+
+	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
 // ginkgo — без комментариев! ©

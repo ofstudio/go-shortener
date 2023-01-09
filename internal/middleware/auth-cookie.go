@@ -7,11 +7,12 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
-	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/models"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/ofstudio/go-shortener/internal/app/services"
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 type contextKey struct {

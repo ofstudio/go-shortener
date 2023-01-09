@@ -4,19 +4,21 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
-	"github.com/go-chi/chi/v5"
-	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/handlers"
-	"github.com/ofstudio/go-shortener/internal/middleware"
-	"github.com/ofstudio/go-shortener/internal/repo"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/ofstudio/go-shortener/internal/app/config"
+	"github.com/ofstudio/go-shortener/internal/app/services"
+	"github.com/ofstudio/go-shortener/internal/handlers"
+	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
 func main() {

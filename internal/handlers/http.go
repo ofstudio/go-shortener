@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/middleware"
 	"io"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/ofstudio/go-shortener/internal/app/services"
+	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
 // HTTPHandlers - HTTP-хендлеры для сервиса services.ShortURLService

@@ -2,8 +2,9 @@ package repo
 
 import (
 	"context"
-	"github.com/ofstudio/go-shortener/internal/models"
 	"sync"
+
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 // MemoryRepo - реализация Repo для хранения данных в памяти.

@@ -1,8 +1,9 @@
 package repo
 
 import (
-	"github.com/ofstudio/go-shortener/internal/app/config"
 	"log"
+
+	"github.com/ofstudio/go-shortener/internal/app/config"
 )
 
 // Fabric - фабрика для создания репозитория.
