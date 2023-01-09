@@ -8,8 +8,8 @@ import (
 
 // MemoryRepo - реализация Repo для хранения данных в памяти.
 type MemoryRepo struct {
-	shortURLs      map[string]models.ShortURL
-	users          map[uint]models.User
+	shortURLs      map[string]*models.ShortURL
+	users          map[uint]*models.User
 	userShortURLs  map[uint][]string
 	originalURLIdx map[string]string
 	nextUserID     uint
@@ -18,8 +18,8 @@ type MemoryRepo struct {
 
 func NewMemoryRepo() *MemoryRepo {
 	return &MemoryRepo{
-		shortURLs:      make(map[string]models.ShortURL),
-		users:          make(map[uint]models.User),
+		shortURLs:      make(map[string]*models.ShortURL),
+		users:          make(map[uint]*models.User),
 		userShortURLs:  make(map[uint][]string),
 		originalURLIdx: make(map[string]string),
 		nextUserID:     1,
@@ -38,7 +38,7 @@ func (r *MemoryRepo) UserCreate(_ context.Context, user *models.User) error {
 	if _, exist := r.users[user.ID]; exist {
 		return ErrDuplicate
 	}
-	r.users[user.ID] = *user
+	r.users[user.ID] = user
 	return nil
 }
 
@@ -47,7 +47,7 @@ func (r *MemoryRepo) UserGetByID(_ context.Context, id uint) (*models.User, erro
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if user, ok := r.users[id]; ok {
-		return &user, nil
+		return user, nil
 	}
 	return nil, ErrNotFound
 }
@@ -66,7 +66,7 @@ func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL
 	if _, exist := r.originalURLIdx[shortURL.OriginalURL]; exist {
 		return ErrDuplicate
 	}
-	r.shortURLs[shortURL.ID] = *shortURL
+	r.shortURLs[shortURL.ID] = shortURL
 	r.userShortURLs[shortURL.UserID] = append(r.userShortURLs[shortURL.UserID], shortURL.ID)
 	r.originalURLIdx[shortURL.OriginalURL] = shortURL.ID
 	return nil
@@ -77,7 +77,7 @@ func (r *MemoryRepo) ShortURLGetByID(_ context.Context, id string) (*models.Shor
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if shortURL, ok := r.shortURLs[id]; ok {
-		return &shortURL, nil
+		return shortURL, nil
 	}
 	return nil, ErrNotFound
 }
@@ -93,7 +93,7 @@ func (r *MemoryRepo) ShortURLGetByUserID(_ context.Context, userID uint) ([]mode
 	}
 	result := make([]models.ShortURL, 0, len(index))
 	for _, id := range index {
-		result = append(result, r.shortURLs[id])
+		result = append(result, *r.shortURLs[id])
 	}
 	return result, nil
 }
@@ -104,7 +104,7 @@ func (r *MemoryRepo) ShortURLGetByOriginalURL(_ context.Context, originalURL str
 	defer r.mu.RUnlock()
 	if id, ok := r.originalURLIdx[originalURL]; ok {
 		if shortURL, ok := r.shortURLs[id]; ok {
-			return &shortURL, nil
+			return shortURL, nil
 		}
 	}
 	return nil, ErrNotFound
