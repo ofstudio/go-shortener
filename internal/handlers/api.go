@@ -56,7 +56,7 @@ func (h APIHandlers) Routes() chi.Router {
 // @Accept  json
 // @Produce json
 // @Param   request body handlers.shortURLCreate.reqType true "Запрос"
-// @Success 200 {object} handlers.shortURLCreate.resType
+// @Success 201 {object} handlers.shortURLCreate.resType
 // @Failure 400
 // @Failure 401
 // @Failure 409 {object} handlers.shortURLCreate.resType
