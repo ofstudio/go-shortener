@@ -1,0 +1,171 @@
+basePath: /api
+definitions:
+  handlers.shortURLCreate.reqType:
+    properties:
+      url:
+        type: string
+    type: object
+  handlers.shortURLCreate.resType:
+    properties:
+      result:
+        type: string
+    type: object
+  handlers.shortURLCreateBatch.reqType:
+    properties:
+      correlation_id:
+        type: string
+      original_url:
+        type: string
+    type: object
+  handlers.shortURLCreateBatch.resType:
+    properties:
+      correlation_id:
+        type: string
+      short_url:
+        type: string
+    type: object
+  handlers.shortURLGetByUserID.resType:
+    properties:
+      original_url:
+        type: string
+      short_url:
+        type: string
+    type: object
+info:
+  contact:
+    email: ofstudio@yandex.ru
+    name: Oleg Fomin
+  description: API для сокращения ссылок
+  title: Go-Shortener API
+  version: "1.0"
+paths:
+  /shorten:
+    post:
+      consumes:
+      - application/json
+      operationId: shortURLCreate
+      parameters:
+      - description: Запрос
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.shortURLCreate.reqType'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.shortURLCreate.resType'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.shortURLCreate.resType'
+        "500":
+          description: Internal Server Error
+      security:
+      - cookieAuth: []
+      summary: Создает сокращенную ссылку
+      tags:
+      - shorten
+  /shorten/batch:
+    post:
+      consumes:
+      - application/json
+      operationId: shortURLCreateBatch
+      parameters:
+      - description: Запрос
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.shortURLCreateBatch.reqType'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/handlers.shortURLCreateBatch.resType'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - cookieAuth: []
+      summary: Создает несколько сокращенных ссылок
+      tags:
+      - shorten
+  /user/urls:
+    delete:
+      consumes:
+      - application/json
+      operationId: shortURLDeleteBatch
+      parameters:
+      - description: Запрос
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - cookieAuth: []
+      summary: Удаляет несколько сокращенных ссылок
+      tags:
+      - user
+    get:
+      operationId: shortURLGetByUserID
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.shortURLGetByUserID.resType'
+            type: array
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      security:
+      - cookieAuth: []
+      summary: Возвращает список сокращенных ссылок пользователя
+      tags:
+      - user
+securityDefinitions:
+  ApiKeyAuth:
+    in: cookie
+    name: auth_token
+    type: apiKey
+swagger: "2.0"

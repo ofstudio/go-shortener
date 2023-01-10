@@ -12,6 +12,17 @@ import (
 	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
+// @Title Go-Shortener API
+// @Description API для сокращения ссылок
+// @Version 1.0
+// @Contact.name Oleg Fomin
+// @Contact.email ofstudio@yandex.ru
+// @BasePath /api
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @In cookie
+// @Name auth_token
+
 // APIHandlers - HTTP-хендлеры для JSON API
 type APIHandlers struct {
 	srv *services.Container
@@ -37,6 +48,20 @@ func (h APIHandlers) Routes() chi.Router {
 // Возвращает ответ http.StatusCreated (201) и сокращенный URL в виде JSON:
 //
 //	{"result":"<shorten_url>"}
+//
+// @Tags shorten
+// @Summary Создает сокращенную ссылку
+// @Security cookieAuth
+// @ID shortURLCreate
+// @Accept  json
+// @Produce json
+// @Param   request body handlers.shortURLCreate.reqType true "Запрос"
+// @Success 200 {object} handlers.shortURLCreate.resType
+// @Failure 400
+// @Failure 401
+// @Failure 409 {object} handlers.shortURLCreate.resType
+// @Failure 500
+// @Router /shorten [post]
 func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	// Структура запроса
 	type reqType struct {
@@ -101,6 +126,19 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 //	    },
 //	    ...
 //	]
+//
+// @Tags shorten
+// @Summary Создает несколько сокращенных ссылок
+// @Security cookieAuth
+// @ID shortURLCreateBatch
+// @Accept  json
+// @Produce json
+// @Param   request body handlers.shortURLCreateBatch.reqType true "Запрос"
+// @Success 201 {array} handlers.shortURLCreateBatch.resType
+// @Failure 400 {string} Bad Request
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /shorten/batch [post]
 func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
 	type reqType struct {
@@ -151,6 +189,19 @@ func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request)
 //	[ "a", "b", "c", "d", ...]
 //
 // Возвращает ответ http.StatusAccepted (202)
+//
+// @Tags user
+// @Summary Удаляет несколько сокращенных ссылок
+// @Security cookieAuth
+// @ID shortURLDeleteBatch
+// @Accept  json
+// @Produce json
+// @Param   request body handlers.shortURLDeleteBatch.reqType true "Запрос"
+// @Success 202
+// @Failure 400
+// @Failure 401
+// @Failure 500
+// @Router /user/urls [delete]
 func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
 	type reqType []string
@@ -190,6 +241,17 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 //	    },
 //	    ...
 //	]
+//
+// @Tags user
+// @Summary Возвращает список сокращенных ссылок пользователя
+// @Security cookieAuth
+// @ID shortURLGetByUserID
+// @Produce json
+// @Success 200 {array} handlers.shortURLGetByUserID.resType
+// @Failure 400
+// @Failure 401
+// @Failure 500
+// @Router /user/urls [get]
 func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request) {
 	// Структура ответа
 	type resType struct {
