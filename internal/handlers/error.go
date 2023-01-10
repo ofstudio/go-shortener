@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	ErrValidation = errors.New("validation error")
-	ErrAuth       = errors.New("unauthorized")
+	ErrValidation = errors.New("validation error") // ErrValidation - ошибка валидации
+	ErrAuth       = errors.New("unauthorized")     // ErrAuth - ошибка авторизации
 )
 
 // respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке сервиса

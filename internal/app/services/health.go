@@ -11,6 +11,7 @@ type HealthService struct {
 	repo repo.Repo
 }
 
+// NewHealthService - конструктор HealthService
 func NewHealthService(repo repo.Repo) *HealthService {
 	return &HealthService{repo: repo}
 }

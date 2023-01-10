@@ -16,6 +16,7 @@ type SQLRepo struct {
 	st statements
 }
 
+// NewSQLRepo - конструктор репозитория SQLRepo.
 func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

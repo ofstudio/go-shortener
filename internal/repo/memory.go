@@ -17,6 +17,7 @@ type MemoryRepo struct {
 	mu             sync.RWMutex
 }
 
+// NewMemoryRepo - конструктор MemoryRepo.
 func NewMemoryRepo() *MemoryRepo {
 	return &MemoryRepo{
 		shortURLs:      make(map[string]*models.ShortURL),

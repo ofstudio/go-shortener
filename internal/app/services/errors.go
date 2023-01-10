@@ -3,9 +3,9 @@ package services
 import "errors"
 
 var (
-	ErrNotFound   = errors.New("not found")
-	ErrDuplicate  = errors.New("duplicate")
-	ErrDeleted    = errors.New("deleted")
-	ErrInternal   = errors.New("internal error")
-	ErrValidation = errors.New("validation error")
+	ErrNotFound   = errors.New("not found")        // ErrNotFound - не найдено
+	ErrDuplicate  = errors.New("duplicate")        // ErrDuplicate - дубликат
+	ErrDeleted    = errors.New("deleted")          // ErrDeleted - удалено
+	ErrInternal   = errors.New("internal error")   // ErrInternal - внутренняя ошибка
+	ErrValidation = errors.New("validation error") // ErrValidation - ошибка валидации
 )

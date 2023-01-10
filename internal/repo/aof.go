@@ -30,6 +30,7 @@ type AOFRepo struct {
 	mu sync.Mutex
 }
 
+// NewAOFRepo - конструктор репозитория AOFRepo.
 func NewAOFRepo(filePath string) (*AOFRepo, error) {
 	// Считываем данные из файла в память
 	memoryRepo, err := loadRepoFromFile(filePath)

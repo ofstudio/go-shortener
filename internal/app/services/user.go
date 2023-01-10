@@ -14,6 +14,7 @@ type UserService struct {
 	repo repo.Repo
 }
 
+// NewUserService - конструктор UserService
 func NewUserService(cfg *config.Config, repo repo.Repo) *UserService {
 	return &UserService{cfg: cfg, repo: repo}
 }

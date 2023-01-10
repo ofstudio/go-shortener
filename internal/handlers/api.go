@@ -28,10 +28,12 @@ type APIHandlers struct {
 	srv *services.Container
 }
 
+// NewAPIHandlers - конструктор APIHandlers
 func NewAPIHandlers(srv *services.Container) *APIHandlers {
 	return &APIHandlers{srv}
 }
 
+// Routes - возвращает роутер с хендлерами
 func (h APIHandlers) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/shorten", h.shortURLCreate)

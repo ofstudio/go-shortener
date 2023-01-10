@@ -17,6 +17,7 @@ type ShortURLService struct {
 	repo repo.Repo
 }
 
+// NewShortURLService - конструктор ShortURLService
 func NewShortURLService(cfg *config.Config, repo repo.Repo) *ShortURLService {
 	return &ShortURLService{cfg, repo}
 }

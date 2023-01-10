@@ -16,10 +16,12 @@ type HTTPHandlers struct {
 	srv *services.Container
 }
 
+// NewHTTPHandlers - конструктор HTTPHandlers
 func NewHTTPHandlers(srv *services.Container) *HTTPHandlers {
 	return &HTTPHandlers{srv: srv}
 }
 
+// Routes - возвращает роутер для HTTP-хендлеров
 func (h HTTPHandlers) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/ping", h.ping)
@@ -81,6 +83,8 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(h.srv.ShortURLService.Resolve(shortURL.ID)))
 }
 
+// ping - вызывает HealthService.Check.
+// Возвращает ответ http.StatusOK (200) или http.StatusInternalServerError (500).
 func (h *HTTPHandlers) ping(w http.ResponseWriter, r *http.Request) {
 	err := h.srv.HealthService.Check(r.Context())
 	if err != nil {

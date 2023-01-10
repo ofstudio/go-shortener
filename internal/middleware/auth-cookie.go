@@ -19,6 +19,7 @@ type contextKey struct {
 	name string
 }
 
+// UserIDCtxKey - ключ для userID в контексте запроса
 var UserIDCtxKey = &contextKey{"user_id"}
 
 const (
@@ -40,6 +41,7 @@ type AuthCookie struct {
 	secure bool
 }
 
+// NewAuthCookie - конструктор AuthCookie
 func NewAuthCookie(srv *services.Container) *AuthCookie {
 	return &AuthCookie{srv: srv}
 }
