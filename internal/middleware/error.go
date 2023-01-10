@@ -6,8 +6,10 @@ import (
 )
 
 var (
-	ErrSigningError = errors.New("signing error") // ErrSigningError - ошибка при подписании токена
-	ErrInvalidToken = errors.New("invalid token") // ErrInvalidToken - невалидный токен
+	// ErrSigningError - ошибка при подписании токена
+	ErrSigningError = errors.New("signing error")
+	// ErrInvalidToken - невалидный токен
+	ErrInvalidToken = errors.New("invalid token")
 )
 
 // respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке middleware

@@ -3,12 +3,20 @@ package repo
 import "errors"
 
 var (
-	ErrInvalidModel     = errors.New("invalid model")            // ErrInvalidModel - невалидная модель данных
-	ErrDuplicate        = errors.New("duplicate id")             // ErrDuplicate - дубликат id
-	ErrNotFound         = errors.New("not found")                // ErrNotFound - не найдено
-	ErrAOFOpen          = errors.New("aof open error")           // ErrAOFOpen - ошибка открытия AOF-файла
-	ErrAOFRead          = errors.New("aof read error")           // ErrAOFRead - ошибка чтения AOF-файла
-	ErrAOFWrite         = errors.New("aof write error")          // ErrAOFWrite - ошибка записи AOF-файла
-	ErrAOFStructure     = errors.New("aof json structure error") // ErrAOFStructure - ошибка структуры JSON в AOF-файле
-	ErrDBNotInitialized = errors.New("db not initialized")       // ErrDBNotInitialized - база данных не инициализирована
+	// ErrInvalidModel - невалидная модель данных
+	ErrInvalidModel = errors.New("invalid model")
+	// ErrDuplicate - дубликат id
+	ErrDuplicate = errors.New("duplicate id")
+	// ErrNotFound - не найдено
+	ErrNotFound = errors.New("not found")
+	// ErrAOFOpen - ошибка открытия AOF-файла
+	ErrAOFOpen = errors.New("aof open error")
+	// ErrAOFRead - ошибка чтения AOF-файла
+	ErrAOFRead = errors.New("aof read error")
+	// ErrAOFWrite - ошибка записи AOF-файла
+	ErrAOFWrite = errors.New("aof write error")
+	// ErrAOFStructure - ошибка структуры JSON в AOF-файле
+	ErrAOFStructure = errors.New("aof json structure error")
+	// ErrDBNotInitialized - база данных не инициализирована
+	ErrDBNotInitialized = errors.New("db not initialized")
 )

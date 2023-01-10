@@ -11,6 +11,7 @@ import (
 	"github.com/ofstudio/go-shortener/internal/models"
 )
 
+// SQLRepo - реализация IRepo для хранения данных в PostgreSQL.
 type SQLRepo struct {
 	db *sql.DB
 	st statements
