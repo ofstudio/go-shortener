@@ -7,12 +7,11 @@ import (
 	"github.com/ofstudio/go-shortener/internal/app/services"
 )
 
-var (
-	// ErrValidation - ошибка валидации
-	ErrValidation = errors.New("validation error")
-	// ErrAuth - ошибка авторизации
-	ErrAuth = errors.New("unauthorized")
-)
+// ErrValidation - ошибка валидации
+var ErrValidation = errors.New("validation error")
+
+// ErrAuth - ошибка авторизации
+var ErrAuth = errors.New("unauthorized")
 
 // respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке сервиса
 func respondWithError(w http.ResponseWriter, err error) {
