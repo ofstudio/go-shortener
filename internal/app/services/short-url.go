@@ -14,11 +14,11 @@ import (
 // ShortURLService - бизнес-логика для сокращенных ссылок
 type ShortURLService struct {
 	cfg  *config.Config
-	repo repo.Repo
+	repo repo.IRepo
 }
 
 // NewShortURLService - конструктор ShortURLService
-func NewShortURLService(cfg *config.Config, repo repo.Repo) *ShortURLService {
+func NewShortURLService(cfg *config.Config, repo repo.IRepo) *ShortURLService {
 	return &ShortURLService{cfg, repo}
 }
 
@@ -122,6 +122,7 @@ func (s ShortURLService) DeleteBatch(ctx context.Context, userID uint, ids []str
 	return nil
 }
 
+// Resolve - возвращает сокращенный URL по его id
 func (s ShortURLService) Resolve(id string) string {
 	return s.cfg.BaseURL.String() + id
 }

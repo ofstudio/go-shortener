@@ -11,11 +11,11 @@ import (
 // UserService - бизнес-логика для работы с пользователями
 type UserService struct {
 	cfg  *config.Config
-	repo repo.Repo
+	repo repo.IRepo
 }
 
 // NewUserService - конструктор UserService
-func NewUserService(cfg *config.Config, repo repo.Repo) *UserService {
+func NewUserService(cfg *config.Config, repo repo.IRepo) *UserService {
 	return &UserService{cfg: cfg, repo: repo}
 }
 

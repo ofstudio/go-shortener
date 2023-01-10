@@ -8,11 +8,11 @@ import (
 
 // HealthService - healthcheck-сервис приложения
 type HealthService struct {
-	repo repo.Repo
+	repo repo.IRepo
 }
 
 // NewHealthService - конструктор HealthService
-func NewHealthService(repo repo.Repo) *HealthService {
+func NewHealthService(repo repo.IRepo) *HealthService {
 	return &HealthService{repo: repo}
 }
 

@@ -13,7 +13,7 @@ type Container struct {
 }
 
 // NewContainer - конструктор Container
-func NewContainer(cfg *config.Config, repo repo.Repo) *Container {
+func NewContainer(cfg *config.Config, repo repo.IRepo) *Container {
 	return &Container{
 		ShortURLService: NewShortURLService(cfg, repo),
 		HealthService:   NewHealthService(repo),

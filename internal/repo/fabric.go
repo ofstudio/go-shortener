@@ -10,7 +10,7 @@ import (
 // Если задан DatabaseDSN - используем SQL-репозиторий.
 // Иначе, если задан fileStoragePath — используем AOF-репозиторий.
 // Иначе используем репозиторий в памяти.
-func Fabric(cfg *config.Config) (Repo, error) {
+func Fabric(cfg *config.Config) (IRepo, error) {
 	switch {
 	case cfg.DatabaseDSN != "":
 		log.Print("Using Postgres storage")

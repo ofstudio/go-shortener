@@ -7,7 +7,7 @@ import (
 	"github.com/ofstudio/go-shortener/internal/models"
 )
 
-// MemoryRepo - реализация Repo для хранения данных в памяти.
+// MemoryRepo - реализация IRepo для хранения данных в памяти.
 type MemoryRepo struct {
 	shortURLs      map[string]*models.ShortURL
 	users          map[uint]*models.User

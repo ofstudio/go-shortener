@@ -6,8 +6,8 @@ import (
 	"github.com/ofstudio/go-shortener/internal/models"
 )
 
-// Repo - интерфейс репозитория.
-type Repo interface {
+// IRepo - интерфейс репозитория.
+type IRepo interface {
 	// UserCreate - добавляет нового пользователя в репозиторий.
 	UserCreate(context.Context, *models.User) error
 	// UserGetByID - возвращает пользователя по его id.
