@@ -4,17 +4,12 @@
 Проведите анализ использования памяти вашим проектом, определите и исправьте неэффективные части кода.
 
 
-1. Запускаем бенчмарки `./internal/repo/memory_test.go` \
-   `go test -bench=. ./internal/repo -benchmem -memprofile ./profiles/base.pprof`
-2. Смотрим результат в `pprof`:\
-`go tool pprof  -http=":9090" repo.test profiles/base.pprof`
+1. Запускаем бенчмарки: `make bench p=before`
+2. Смотрим результат: `make pprof p=before`
 3. Оптимизируем код
-4. Запускаем бенчмарки снова:\
-   `go test -bench=. ./internal/repo -benchmem -memprofile ./profiles/result.pprof`
-5. Смотрим результат в `pprof`:\
-   `go tool pprof  -http=":9090" repo.test profiles/result.pprof`
-6. Сравниваем результаты:\
-   `go tool pprof -top -diff_base=profiles/base.pprof profiles/result.pprof`
+4. Запускаем бенчмарки снова:`make bench p=after`
+5. Смотрим результат: `make pprof p=after`
+6. Сравниваем результаты:`make pprof_diff p1=before p2=after`
 
 ## Результаты оптимизации
 Использование указателей в структурах данных позволило сократить потребление памяти в 2 раза.
