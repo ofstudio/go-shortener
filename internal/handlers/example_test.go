@@ -10,7 +10,10 @@ func Example() {
 
 	// POST /api/shorten
 	body := `{"url":"https://very.long.url/a/b/c/d/"}`
-	res, _ := http.DefaultClient.Post(host+"/api/shorten", "application/json", strings.NewReader(body))
+	res, err := http.DefaultClient.Post(host+"/api/shorten", "application/json", strings.NewReader(body))
+	if err != nil {
+		panic(err)
+	}
 	defer res.Body.Close()
 
 	// Response:
