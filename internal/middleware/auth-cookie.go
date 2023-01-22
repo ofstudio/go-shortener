@@ -7,17 +7,19 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
-	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/models"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/ofstudio/go-shortener/internal/app/services"
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 type contextKey struct {
 	name string
 }
 
+// UserIDCtxKey - ключ для userID в контексте запроса
 var UserIDCtxKey = &contextKey{"user_id"}
 
 const (
@@ -39,6 +41,7 @@ type AuthCookie struct {
 	secure bool
 }
 
+// NewAuthCookie - конструктор AuthCookie
 func NewAuthCookie(srv *services.Container) *AuthCookie {
 	return &AuthCookie{srv: srv}
 }

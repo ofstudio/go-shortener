@@ -2,13 +2,15 @@ package middleware_test
 
 import (
 	"compress/gzip"
+	"io"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/ofstudio/go-shortener/internal/middleware"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"io/ioutil"
-	"net/http"
+
+	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
 var _ = Describe("Compressor Middleware", func() {
@@ -128,7 +130,7 @@ func testCompressorRequest(server *ghttp.Server, path string, acceptGzip bool) (
 	res, err := c.Do(req)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(res.StatusCode).Should(Equal(http.StatusOK))
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(res.Body.Close()).Should(Succeed())
 	return body, res.Header.Get("Content-Encoding")

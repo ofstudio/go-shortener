@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
@@ -10,10 +11,11 @@ import (
 // UserService - бизнес-логика для работы с пользователями
 type UserService struct {
 	cfg  *config.Config
-	repo repo.Repo
+	repo repo.IRepo
 }
 
-func NewUserService(cfg *config.Config, repo repo.Repo) *UserService {
+// NewUserService - конструктор UserService
+func NewUserService(cfg *config.Config, repo repo.IRepo) *UserService {
 	return &UserService{cfg: cfg, repo: repo}
 }
 

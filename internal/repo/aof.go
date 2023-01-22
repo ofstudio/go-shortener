@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/ofstudio/go-shortener/internal/models"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 // aofRecord - структура одной JSON-записи для хранения в AOF-файле.
@@ -17,7 +18,7 @@ type aofRecord struct {
 	ShortURLDelete *models.ShortURL `json:"short_url_update,omitempty"`
 }
 
-// AOFRepo - реализация Repo для хранения данных в append-only файле (AOF).
+// AOFRepo - реализация IRepo для хранения данных в append-only файле (AOF).
 // При создании репозитория производится загрузка данных из файла в память.
 // При чтении из репозитория используются данные из памяти.
 // При записи в репозиторий, данные сохраняются в память, а также записываются в файл в виде JSON-строк.
@@ -29,6 +30,7 @@ type AOFRepo struct {
 	mu sync.Mutex
 }
 
+// NewAOFRepo - конструктор репозитория AOFRepo.
 func NewAOFRepo(filePath string) (*AOFRepo, error) {
 	// Считываем данные из файла в память
 	memoryRepo, err := loadRepoFromFile(filePath)

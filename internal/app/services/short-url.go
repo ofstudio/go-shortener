@@ -3,20 +3,22 @@ package services
 import (
 	"context"
 	"errors"
+	"net/url"
+
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
 	"github.com/ofstudio/go-shortener/pkg/shortid"
-	"net/url"
 )
 
 // ShortURLService - бизнес-логика для сокращенных ссылок
 type ShortURLService struct {
 	cfg  *config.Config
-	repo repo.Repo
+	repo repo.IRepo
 }
 
-func NewShortURLService(cfg *config.Config, repo repo.Repo) *ShortURLService {
+// NewShortURLService - конструктор ShortURLService
+func NewShortURLService(cfg *config.Config, repo repo.IRepo) *ShortURLService {
 	return &ShortURLService{cfg, repo}
 }
 
@@ -120,6 +122,7 @@ func (s ShortURLService) DeleteBatch(ctx context.Context, userID uint, ids []str
 	return nil
 }
 
+// Resolve - возвращает сокращенный URL по его id
 func (s ShortURLService) Resolve(id string) string {
 	return s.cfg.BaseURL.String() + id
 }

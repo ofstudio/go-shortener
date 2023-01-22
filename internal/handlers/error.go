@@ -2,14 +2,16 @@ package handlers
 
 import (
 	"errors"
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"net/http"
+
+	"github.com/ofstudio/go-shortener/internal/app/services"
 )
 
-var (
-	ErrValidation = errors.New("validation error")
-	ErrAuth       = errors.New("unauthorized")
-)
+// ErrValidation - ошибка валидации
+var ErrValidation = errors.New("validation error")
+
+// ErrAuth - ошибка авторизации
+var ErrAuth = errors.New("unauthorized")
 
 // respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке сервиса
 func respondWithError(w http.ResponseWriter, err error) {

@@ -3,10 +3,12 @@ package repo
 import (
 	"context"
 	"database/sql"
-	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/ofstudio/go-shortener/internal/models"
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 const dsn = "postgres://autotest:autotest@localhost:5432/autotest"

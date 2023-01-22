@@ -21,12 +21,13 @@ const (
 	statePass                          // Данные сжимать не нужно.
 )
 
-const NoStatusCode = -1
+const noStatusCode = -1
 
 // CompressedWriter - компрессор для gzip-сжатия данных.
 // Данные будут сжиматься при соблюдении следующих условий:
-//    1. Размер данных для сжатия больше или равен minSize.
-//    2. Тип данных будет включен в список allowedTypes.
+//  1. Размер данных для сжатия больше или равен minSize.
+//  2. Тип данных будет включен в список allowedTypes.
+//
 // Если хотя бы одно из условий не выполняется, то данные не будут сжаты.
 type CompressedWriter struct {
 	// Состояние компрессора.
@@ -60,7 +61,7 @@ type CompressedWriter struct {
 	level int
 
 	// HTTP-код ответа, полученный от WriteHeader.
-	// Если WriteHeader не вызывался, имеет значение NoStatusCode.
+	// Если WriteHeader не вызывался, имеет значение noStatusCode.
 	// До момента пока не будет определено, нужно сжимать данные или нет,
 	// мы не отправляем код в http.ResponseWriter, а храним его в этом поле.
 	// Перед первой отправкой данных в http.ResponseWriter или в compWriter,
@@ -70,10 +71,11 @@ type CompressedWriter struct {
 
 // NewCompressedWriter - создает новый поток для сжатия данных.
 // Параметры:
-//    responseWriter - результирующий записывающий поток.
-//    minSize - минимальный размер данных для сжатия.
-//    level - уровень сжатия данных.
-//    allowedTypes - список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
+//
+//	responseWriter - результирующий записывающий поток.
+//	minSize - минимальный размер данных для сжатия.
+//	level - уровень сжатия данных.
+//	allowedTypes - список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
 func NewCompressedWriter(responseWriter http.ResponseWriter, minSize int64, level int, allowedTypes map[string]struct{}) *CompressedWriter {
 	return &CompressedWriter{
 		state:          stateUnset,
@@ -85,10 +87,11 @@ func NewCompressedWriter(responseWriter http.ResponseWriter, minSize int64, leve
 		allowedTypes:   allowedTypes,
 		typeChecked:    false,
 		level:          level,
-		statusCode:     NoStatusCode,
+		statusCode:     noStatusCode,
 	}
 }
 
+// Write - записывает данные в поток.
 func (w *CompressedWriter) Write(p []byte) (int, error) {
 
 	// Если не была произведена проверка типа данных, то проверяем его.
@@ -193,9 +196,9 @@ func (w *CompressedWriter) typeCheck(contentType string) bool {
 // в случае если он был установлен раннее с помощью WriteHeader.
 // Метод необходимо вызывать перед первой отправкой данных в http.ResponseWriter или compWriter.
 func (w *CompressedWriter) resumeWriteHeader() {
-	if w.statusCode != NoStatusCode {
+	if w.statusCode != noStatusCode {
 		w.ResponseWriter.WriteHeader(w.statusCode)
 		// Исключаем повторную отправку.
-		w.statusCode = NoStatusCode
+		w.statusCode = noStatusCode
 	}
 }

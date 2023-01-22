@@ -2,15 +2,17 @@ package services
 
 import (
 	"context"
+
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
 // HealthService - healthcheck-сервис приложения
 type HealthService struct {
-	repo repo.Repo
+	repo repo.IRepo
 }
 
-func NewHealthService(repo repo.Repo) *HealthService {
+// NewHealthService - конструктор HealthService
+func NewHealthService(repo repo.IRepo) *HealthService {
 	return &HealthService{repo: repo}
 }
 

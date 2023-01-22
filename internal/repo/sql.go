@@ -3,17 +3,21 @@ package repo
 import (
 	"context"
 	"database/sql"
+
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v4/stdlib"
+
 	"github.com/ofstudio/go-shortener/internal/models"
 )
 
+// SQLRepo - реализация IRepo для хранения данных в PostgreSQL.
 type SQLRepo struct {
 	db *sql.DB
 	st statements
 }
 
+// NewSQLRepo - конструктор репозитория SQLRepo.
 func NewSQLRepo(dsn string) (*SQLRepo, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

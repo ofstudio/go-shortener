@@ -2,10 +2,17 @@ package services
 
 import "errors"
 
-var (
-	ErrNotFound   = errors.New("not found")
-	ErrDuplicate  = errors.New("duplicate")
-	ErrDeleted    = errors.New("deleted")
-	ErrInternal   = errors.New("internal error")
-	ErrValidation = errors.New("validation error")
-)
+// ErrNotFound - не найдено
+var ErrNotFound = errors.New("not found")
+
+// ErrDuplicate - дубликат
+var ErrDuplicate = errors.New("duplicate")
+
+// ErrDeleted - удалено
+var ErrDeleted = errors.New("deleted")
+
+// ErrInternal - внутренняя ошибка
+var ErrInternal = errors.New("internal error")
+
+// ErrValidation - ошибка валидации
+var ErrValidation = errors.New("validation error")

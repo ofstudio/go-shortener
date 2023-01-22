@@ -1,15 +1,17 @@
 package middleware_test
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/repo"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
-	"net/http"
 )
 
 var _ = Describe("AuthCookie Middleware", func() {

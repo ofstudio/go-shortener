@@ -2,9 +2,11 @@ package repo
 
 import (
 	"context"
-	"github.com/ofstudio/go-shortener/internal/models"
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 type memoryRepoSuite struct {
@@ -206,4 +208,61 @@ func (suite *memoryRepoSuite) Test_autoIncrement() {
 
 func TestMemoryRepoSuite(t *testing.T) {
 	suite.Run(t, new(memoryRepoSuite))
+}
+
+// ======================
+// Бенчмарки
+// ======================
+
+func BenchmarkMemoryRepo_UserGetByID(b *testing.B) {
+	repo := NewMemoryRepo()
+	user := &models.User{}
+	ctx := context.Background()
+	_ = repo.UserCreate(ctx, user)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.UserGetByID(ctx, user.ID)
+	}
+}
+
+func BenchmarkMemoryRepo_ShortURLGetByID(b *testing.B) {
+	repo := NewMemoryRepo()
+	shortURL := &models.ShortURL{
+		ID:          "1234",
+		OriginalURL: "https://google.com",
+		UserID:      1,
+		Deleted:     false,
+	}
+	ctx := context.Background()
+	_ = repo.ShortURLCreate(ctx, shortURL)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.ShortURLGetByID(ctx, shortURL.ID)
+	}
+}
+
+func BenchmarkMemoryRepo_ShortURLGetByUserID(b *testing.B) {
+	repo := NewMemoryRepo()
+	shortURL1 := &models.ShortURL{
+		ID:          "1234",
+		OriginalURL: "https://google.com",
+		UserID:      1,
+		Deleted:     false,
+	}
+	shortURL2 := &models.ShortURL{
+		ID:          "5678",
+		OriginalURL: "https://apple.com",
+		UserID:      1,
+		Deleted:     false,
+	}
+	ctx := context.Background()
+	_ = repo.ShortURLCreate(ctx, shortURL1)
+	_ = repo.ShortURLCreate(ctx, shortURL2)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = repo.ShortURLGetByUserID(ctx, 1)
+	}
 }

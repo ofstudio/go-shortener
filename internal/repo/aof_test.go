@@ -2,11 +2,13 @@ package repo
 
 import (
 	"context"
-	"github.com/ofstudio/go-shortener/internal/models"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/ofstudio/go-shortener/internal/models"
 )
 
 type aofRepoSuite struct {

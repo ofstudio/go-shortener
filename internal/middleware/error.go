@@ -5,10 +5,11 @@ import (
 	"net/http"
 )
 
-var (
-	ErrSigningError = errors.New("signing error")
-	ErrInvalidToken = errors.New("invalid token")
-)
+// ErrSigningError - ошибка при подписании токена
+var ErrSigningError = errors.New("signing error")
+
+// ErrInvalidToken - невалидный токен
+var ErrInvalidToken = errors.New("invalid token")
 
 // respondWithError - возвращает клиенту http-ошибку, соответствующую ошибке middleware
 func respondWithError(w http.ResponseWriter, _ error) {

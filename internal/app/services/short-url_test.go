@@ -2,13 +2,15 @@ package services
 
 import (
 	"context"
-	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/models"
-	"github.com/ofstudio/go-shortener/internal/repo"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
+
+	"github.com/ofstudio/go-shortener/internal/app/config"
+	"github.com/ofstudio/go-shortener/internal/models"
+	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
 type shortURLServiceSuite struct {

@@ -5,14 +5,15 @@ import (
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
+// Container - контейнер сервисов
 type Container struct {
 	ShortURLService *ShortURLService
 	HealthService   *HealthService
 	UserService     *UserService
 }
 
-// NewContainer - создает контейнер сервисов
-func NewContainer(cfg *config.Config, repo repo.Repo) *Container {
+// NewContainer - конструктор Container
+func NewContainer(cfg *config.Config, repo repo.IRepo) *Container {
 	return &Container{
 		ShortURLService: NewShortURLService(cfg, repo),
 		HealthService:   NewHealthService(repo),
