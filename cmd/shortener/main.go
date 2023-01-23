@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +23,10 @@ import (
 )
 
 func main() {
+
+	// Выводим информацию о сборке
+	fmt.Print(buildInfo())
+
 	// Считываем конфигурацию: по-умолчанию => из переменных окружения => из командной строки
 	cfg, err := config.Compose(config.Default, config.FromEnv, config.FromCLI)
 	if err != nil {
@@ -84,4 +89,16 @@ func main() {
 		log.Fatalf("Http server error: %v", err)
 	}
 	log.Println("Http server stopped. Exiting...")
+}
+
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
+func buildInfo() string {
+	return "Build version: " + buildVersion + "\n" +
+		"Build date: " + buildDate + "\n" +
+		"Build commit: " + buildCommit + "\n"
 }
