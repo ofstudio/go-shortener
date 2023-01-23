@@ -92,11 +92,13 @@ func main() {
 }
 
 var (
+	// Актуальные значения переменных устанавливаются при сборке приложения.
 	buildVersion = "N/A"
 	buildDate    = "N/A"
 	buildCommit  = "N/A"
 )
 
+// buildInfo - возвращает информацию о сборке.
 func buildInfo() string {
 	return "Build version: " + buildVersion + "\n" +
 		"Build date: " + buildDate + "\n" +
