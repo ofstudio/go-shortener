@@ -1,4 +1,4 @@
-package middleware_test
+package middleware
 
 import (
 	"bytes"
@@ -10,8 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-
-	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
 // ginkgo — без комментариев! ©
@@ -24,7 +22,7 @@ var _ = Describe("Decompressor Middleware", func() {
 		// создаем echo-сервер
 		server = ghttp.NewServer()
 		r := chi.NewRouter()
-		r.Use(middleware.Decompressor)
+		r.Use(Decompressor)
 		// echo handler
 		r.Post("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)

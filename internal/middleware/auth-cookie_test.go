@@ -1,4 +1,4 @@
-package middleware_test
+package middleware
 
 import (
 	"net/http"
@@ -10,7 +10,6 @@ import (
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
@@ -24,7 +23,7 @@ var _ = Describe("AuthCookie Middleware", func() {
 		srv := services.NewContainer(cfg, repository)
 		server = ghttp.NewServer()
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(srv).WithSecret([]byte(cfg.AuthSecret)).Handler)
+		r.Use(NewAuthCookie(srv).WithSecret([]byte(cfg.AuthSecret)).Handler)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			Expect(w.Write([]byte("Hello, World!"))).Error().ShouldNot(HaveOccurred())
 		})
