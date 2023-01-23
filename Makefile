@@ -1,4 +1,4 @@
-.PHONY: run, build, test, swag, bench, pprof, pprof_diff
+.PHONY: run, build, test, swag, bench, pprof, pprof_diff, lint
 
 run:
 	go run ./cmd/shortener/main.go
@@ -20,3 +20,8 @@ pprof:
 
 pprof_diff:
 	go tool pprof -top -diff_base=profiles/${p1}.pprof profiles/${p2}.pprof
+
+lint:
+	go build -o ./cmd/staticlint/staticlint ./cmd/staticlint/main.go && \
+	./cmd/staticlint/staticlint ./...
+
