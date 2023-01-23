@@ -25,14 +25,14 @@ type Config struct {
 	// Если не задан, данные будут храниться в памяти.
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 
-	// AuthTTL - время жизни авторизационного токена
-	AuthTTL time.Duration `env:"AUTH_TTL"`
+	// DatabaseDSN - строка с адресом подключения к БД
+	DatabaseDSN string `env:"DATABASE_DSN"`
 
 	// AuthSecret - секретный ключ для подписи авторизационного токена
 	AuthSecret string `env:"AUTH_SECRET,unset"`
 
-	// DatabaseDSN - строка с адресом подключения к БД
-	DatabaseDSN string `env:"DATABASE_DSN"`
+	// AuthTTL - время жизни авторизационного токена
+	AuthTTL time.Duration `env:"AUTH_TTL"`
 }
 
 // Default - конфигурационная функция, которая возвращает конфигурацию по умолчанию.

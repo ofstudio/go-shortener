@@ -30,9 +30,6 @@ const noStatusCode = -1
 //
 // Если хотя бы одно из условий не выполняется, то данные не будут сжаты.
 type CompressedWriter struct {
-	// Состояние компрессора.
-	state compressState
-
 	// Результирующий поток.
 	http.ResponseWriter
 
@@ -40,19 +37,14 @@ type CompressedWriter struct {
 	// Инициализируется только если нужно сжимать данные.
 	compWriter io.WriteCloser
 
-	// Минимальный размер данных для сжатия.
-	// 0 - сжимать данные в любом случае.
-	// MTUSize - оптимизированное значение под размер сетевого пакета.
-	minSize int64
+	// Список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
+	allowedTypes map[string]struct{}
 
 	// Буфер размера minSize для накопления данных, перед принятием решения о сжатии.
 	buf []byte
 
-	// Кол-во данных в буфере.
-	buffered int64
-
-	// Список типов, которые могут быть сжаты (если не задано ни одного, то сжимаем все типы)
-	allowedTypes map[string]struct{}
+	// Состояние компрессора.
+	state compressState
 
 	// Проверен ли тип данных в запросе.
 	typeChecked bool
@@ -67,6 +59,14 @@ type CompressedWriter struct {
 	// Перед первой отправкой данных в http.ResponseWriter или в compWriter,
 	// необходимо отправить код с помощью метода resumeWriteHeader.
 	statusCode int
+
+	// Минимальный размер данных для сжатия.
+	// 0 - сжимать данные в любом случае.
+	// MTUSize - оптимизированное значение под размер сетевого пакета.
+	minSize int64
+
+	// Кол-во данных в буфере.
+	buffered int64
 }
 
 // NewCompressedWriter - создает новый поток для сжатия данных.
