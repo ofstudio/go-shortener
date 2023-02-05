@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"os"
 	"testing"
 	"time"
@@ -146,6 +147,34 @@ func (suite *configSuite) TestValidateServerAddress() {
 	suite.setenv(map[string]string{"SERVER_ADDRESS": "0.0.0.0:100000"})
 	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
+}
+
+func (suite *configSuite) TestTLS_validate() {
+	t := &TLS{
+		Hosts: []string{"example.com"},
+		Curve: tls.CurveP256,
+		TTL:   time.Hour,
+	}
+	suite.NoError(t.validate())
+
+	t.Hosts = []string{"example.com", "example.org", "127.0.0.1"}
+	suite.NoError(t.validate())
+
+	t.Hosts = []string{}
+	suite.Error(t.validate())
+
+	t.Hosts = nil
+	suite.Error(t.validate())
+
+	t.Hosts = []string{"example.com"}
+	t.TTL = 0
+	suite.Error(t.validate())
+
+	t.TTL = -1
+	suite.Error(t.validate())
+
+	t = &TLS{}
+	suite.Error(t.validate())
 }
 
 func TestConfigSuite(t *testing.T) {

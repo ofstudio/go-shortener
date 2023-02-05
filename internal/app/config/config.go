@@ -31,6 +31,12 @@ type Config struct {
 	// AuthSecret - секретный ключ для подписи авторизационного токена
 	AuthSecret string `env:"AUTH_SECRET,unset"`
 
+	// TLS - настройки TLS
+	TLS TLS
+
+	// UseTLS - использовать TLS
+	UseTLS bool `env:"USE_TLS"`
+
 	// AuthTTL - время жизни авторизационного токена
 	AuthTTL time.Duration `env:"AUTH_TTL"`
 }
@@ -45,6 +51,8 @@ func Default(_ *Config) (*Config, error) {
 	cfg := Config{
 		BaseURL:       url.URL{Scheme: "http", Host: "localhost:8080", Path: "/"},
 		ServerAddress: "0.0.0.0:8080",
+		UseTLS:        false,
+		TLS:           tlsDefault,
 		AuthTTL:       time.Minute * 60 * 24 * 30,
 		AuthSecret:    secret,
 		DatabaseDSN:   "",
@@ -61,6 +69,7 @@ func Default(_ *Config) (*Config, error) {
 //
 //	-a <host:port> - адрес для запуска HTTP-сервера
 //	-b <url>       - базовый адрес сокращённого URL
+//	-s             - использовать TLS с самоподписанным сертификатом
 //	-f <path>      - файл для хранения данных
 //	-t <duration>  - время жизни авторизационного токена
 //	-d <dsn>       - строка с адресом подключения к БД
@@ -75,11 +84,14 @@ func FromCLI(cfg *Config) (*Config, error) {
 func fromCLI(cfg *Config, arguments ...string) (*Config, error) {
 	// Парсим командную строку
 	cli := flag.NewFlagSet("config", flag.ExitOnError)
+
 	cli.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "HTTP server address")
+	cli.BoolVar(&cfg.UseTLS, "s", cfg.UseTLS, "Use TLS with self-signed certificate")
 	cli.Func("b", "Base URL", urlParseFunc(&cfg.BaseURL))
 	cli.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File storage path (default: in-memory)")
 	cli.DurationVar(&cfg.AuthTTL, "t", cfg.AuthTTL, "Auth token TTL")
 	cli.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "Database DSN")
+
 	if err := cli.Parse(arguments); err != nil {
 		return nil, err
 	}
@@ -96,6 +108,7 @@ func fromCLI(cfg *Config, arguments ...string) (*Config, error) {
 //
 //	SERVER_ADDRESS    - адрес для запуска HTTP-сервера
 //	BASE_URL          - базовый адрес сокращённого URL
+//	USE_TLS           - использовать TLS с самоподписанным сертификатом
 //	FILE_STORAGE_PATH - файл для хранения данных
 //	AUTH_TTL          - время жизни авторизационного токена
 //	AUTH_SECRET       - секретный ключ для подписи авторизационного токена
@@ -119,6 +132,7 @@ func (c *Config) validate() error {
 	g.Go(c.validateAuthSecret)
 	g.Go(c.validateBaseURL)
 	g.Go(c.validateServerAddr)
+	g.Go(c.TLS.validate)
 	return g.Wait()
 }
 
