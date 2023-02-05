@@ -34,11 +34,11 @@ const (
 // содержащую уникальный идентификатор пользователя, если такой куки не существует
 // или она не проходит проверку подлинности.
 type AuthCookie struct {
+	domain string
 	srv    *services.Container
 	secret []byte
-	domain string
-	maxAge int
 	secure bool
+	maxAge int
 }
 
 // NewAuthCookie - конструктор AuthCookie

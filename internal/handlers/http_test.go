@@ -1,4 +1,4 @@
-package handlers_test
+package handlers
 
 import (
 	"io"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/handlers"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
@@ -31,7 +30,7 @@ var _ = Describe("shortURL handlers", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
+		r.Mount("/", NewHTTPHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 

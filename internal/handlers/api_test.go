@@ -1,4 +1,4 @@
-package handlers_test
+package handlers
 
 import (
 	"encoding/json"
@@ -15,7 +15,6 @@ import (
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
-	"github.com/ofstudio/go-shortener/internal/handlers"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
@@ -32,7 +31,7 @@ var _ = Describe("POST /shorten ", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewAPIHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 
@@ -127,7 +126,7 @@ var _ = Describe("POST /shorten/batch", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewAPIHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
@@ -175,7 +174,7 @@ var _ = Describe("GET /user/urls", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", handlers.NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewAPIHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
@@ -238,8 +237,8 @@ var _ = Describe("DELETE /user/urls", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
-		r.Mount("/api", handlers.NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewHTTPHandlers(srv).Routes())
+		r.Mount("/api", NewAPIHandlers(srv).Routes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 

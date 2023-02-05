@@ -1,4 +1,4 @@
-package middleware_test
+package middleware
 
 import (
 	"compress/gzip"
@@ -9,8 +9,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-
-	"github.com/ofstudio/go-shortener/internal/middleware"
 )
 
 var _ = Describe("Compressor Middleware", func() {
@@ -22,7 +20,7 @@ var _ = Describe("Compressor Middleware", func() {
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		r := chi.NewRouter()
-		r.Use(middleware.NewCompressor(minSize, gzip.DefaultCompression).AddType("text/html").Handler)
+		r.Use(NewCompressor(minSize, gzip.DefaultCompression).AddType("text/html").Handler)
 
 		// Ответ короче минимального размера
 		r.Get("/short-response", func(w http.ResponseWriter, r *http.Request) {
