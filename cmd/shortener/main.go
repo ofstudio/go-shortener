@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/ofstudio/go-shortener/internal/app/listener"
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/app/services"
@@ -82,13 +83,21 @@ func main() {
 	}()
 
 	// Запускаем сервер.
-	log.Printf("Starting http server at %s", cfg.ServerAddress)
-	err = server.ListenAndServe()
+	if cfg.UseTLS {
+		log.Printf("Starting https server at %s", cfg.ServerAddress)
+	} else {
+		log.Printf("Starting http server at %s", cfg.ServerAddress)
+	}
+	l, err := listener.NewListener(cfg)
+	if err != nil {
+		log.Fatalf("Server error: %v", err)
+	}
+	err = server.Serve(l)
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("Http server error: %v", err)
+		log.Fatalf("Server error: %v", err)
 	}
-	log.Println("Http server stopped. Exiting...")
+	log.Println("Server stopped. Exiting...")
 }
 
 var (
