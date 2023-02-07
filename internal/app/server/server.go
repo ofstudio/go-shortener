@@ -16,15 +16,18 @@ import (
 	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
+// Server - HTTP-сервер
 type Server struct {
 	cfg    *config.Config
 	server *http.Server
 }
 
+// NewServer - конструктор сервера
 func NewServer(cfg *config.Config) *Server {
 	return &Server{cfg: cfg}
 }
 
+// Start - запуск сервера
 func (s *Server) Start(ctx context.Context) error {
 	// Создаём репозиторий и сервисы.
 	repository, err := repo.Fabric(s.cfg)
