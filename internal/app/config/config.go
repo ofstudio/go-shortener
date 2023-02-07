@@ -34,8 +34,8 @@ type Config struct {
 	// TLS - настройки TLS
 	TLS TLS
 
-	// UseTLS - использовать TLS
-	UseTLS bool `env:"USE_TLS"`
+	// EnableHTTPS - использовать самоподписный TLS
+	EnableHTTPS bool `env:"ENABLE_HTTPS"`
 
 	// AuthTTL - время жизни авторизационного токена
 	AuthTTL time.Duration `env:"AUTH_TTL"`
@@ -51,7 +51,7 @@ func Default(_ *Config) (*Config, error) {
 	cfg := Config{
 		BaseURL:       url.URL{Scheme: "http", Host: "localhost:8080", Path: "/"},
 		ServerAddress: "0.0.0.0:8080",
-		UseTLS:        false,
+		EnableHTTPS:   false,
 		TLS:           tlsDefault,
 		AuthTTL:       time.Minute * 60 * 24 * 30,
 		AuthSecret:    secret,

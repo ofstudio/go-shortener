@@ -10,7 +10,7 @@ import (
 // NewListener - возвращает net.Listener с TLS c самоподписанным сертификатом,
 // либо без TLS.
 func NewListener(cfg *config.Config) (net.Listener, error) {
-	if cfg.UseTLS {
+	if cfg.EnableHTTPS {
 		c, err := selfSignedTLS(&cfg.TLS)
 		if err != nil {
 			return nil, err

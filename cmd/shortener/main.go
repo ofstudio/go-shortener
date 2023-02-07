@@ -83,7 +83,7 @@ func main() {
 	}()
 
 	// Запускаем сервер.
-	if cfg.UseTLS {
+	if cfg.EnableHTTPS {
 		log.Printf("Starting https server at %s", cfg.ServerAddress)
 	} else {
 		log.Printf("Starting http server at %s", cfg.ServerAddress)
