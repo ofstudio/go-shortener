@@ -7,18 +7,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
-// HTTPHandlers - HTTP-хендлеры для сервиса services.ShortURLService
+// HTTPHandlers - HTTP-хендлеры приложения
 type HTTPHandlers struct {
-	srv *services.Container
+	u *usecases.Container
 }
 
 // NewHTTPHandlers - конструктор HTTPHandlers
-func NewHTTPHandlers(srv *services.Container) *HTTPHandlers {
-	return &HTTPHandlers{srv: srv}
+func NewHTTPHandlers(srv *usecases.Container) *HTTPHandlers {
+	return &HTTPHandlers{u: srv}
 }
 
 // Routes - возвращает роутер для HTTP-хендлеров
@@ -35,7 +35,7 @@ func (h HTTPHandlers) Routes() chi.Router {
 // в HTTP-заголовке Location.
 func (h HTTPHandlers) shortURLRedirectToOriginal(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	shortURL, err := h.srv.ShortURLService.GetByID(r.Context(), id)
+	shortURL, err := h.u.ShortURL.GetByID(r.Context(), id)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -65,12 +65,12 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 
 	originalURL := string(b)
 	statusCode := http.StatusCreated
-	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, originalURL)
+	shortURL, err := h.u.ShortURL.Create(r.Context(), userID, originalURL)
 
 	// Если ссылка уже существует, возвращаем её
-	if errors.Is(err, services.ErrDuplicate) {
+	if errors.Is(err, usecases.ErrDuplicate) {
 		statusCode = http.StatusConflict
-		shortURL, err = h.srv.ShortURLService.GetByOriginalURL(r.Context(), originalURL)
+		shortURL, err = h.u.ShortURL.GetByOriginalURL(r.Context(), originalURL)
 	}
 
 	if err != nil {
@@ -80,13 +80,13 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(statusCode)
-	_, _ = w.Write([]byte(h.srv.ShortURLService.Resolve(shortURL.ID)))
+	_, _ = w.Write([]byte(h.u.ShortURL.Resolve(shortURL.ID)))
 }
 
-// ping - вызывает HealthService.Check.
+// ping - вызывает Health.Check.
 // Возвращает ответ http.StatusOK (200) или http.StatusInternalServerError (500).
-func (h *HTTPHandlers) ping(w http.ResponseWriter, r *http.Request) {
-	err := h.srv.HealthService.Check(r.Context())
+func (h HTTPHandlers) ping(w http.ResponseWriter, r *http.Request) {
+	err := h.u.Health.Check(r.Context())
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

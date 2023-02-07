@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/models"
+	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
 type contextKey struct {
@@ -35,14 +35,14 @@ const (
 // или она не проходит проверку подлинности.
 type AuthCookie struct {
 	domain string
-	srv    *services.Container
+	srv    *usecases.Container
 	secret []byte
 	secure bool
 	maxAge int
 }
 
 // NewAuthCookie - конструктор AuthCookie
-func NewAuthCookie(srv *services.Container) *AuthCookie {
+func NewAuthCookie(srv *usecases.Container) *AuthCookie {
 	return &AuthCookie{srv: srv}
 }
 
@@ -100,7 +100,7 @@ func (m *AuthCookie) Handler(next http.Handler) http.Handler {
 // setCookie - устанавливает куку и передает запрос дальше
 func (m *AuthCookie) setCookie(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	user := &models.User{}
-	if err := m.srv.UserService.Create(r.Context(), user); err != nil {
+	if err := m.srv.User.Create(r.Context(), user); err != nil {
 		respondWithError(w, err)
 		return
 	}

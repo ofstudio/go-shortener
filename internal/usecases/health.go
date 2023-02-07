@@ -1,4 +1,4 @@
-package services
+package usecases
 
 import (
 	"context"
@@ -6,20 +6,20 @@ import (
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
-// HealthService - healthcheck-сервис приложения
-type HealthService struct {
+// Health - healthcheck-сервис приложения
+type Health struct {
 	repo repo.IRepo
 }
 
-// NewHealthService - конструктор HealthService
-func NewHealthService(repo repo.IRepo) *HealthService {
-	return &HealthService{repo: repo}
+// NewHealth - конструктор Health
+func NewHealth(repo repo.IRepo) *Health {
+	return &Health{repo: repo}
 }
 
 // Check - выполняет проверку приложения
-func (s *HealthService) Check(ctx context.Context) error {
+func (u *Health) Check(ctx context.Context) error {
 	// Если используется SQL-репозиторий, то проверяем подключение к БД.
-	sqlRepo, ok := s.repo.(*repo.SQLRepo)
+	sqlRepo, ok := u.repo.(*repo.SQLRepo)
 	if ok {
 		db := sqlRepo.DB()
 		if db != nil {

@@ -1,4 +1,4 @@
-package services
+package usecases
 
 import (
 	"context"
@@ -13,28 +13,28 @@ import (
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
-type shortURLServiceSuite struct {
+type shortURLSuite struct {
 	cfg *config.Config
-	*ShortURLService
-	*UserService
+	*ShortURL
+	*User
 	suite.Suite
 }
 
-func (suite *shortURLServiceSuite) SetupTest() {
+func (suite *shortURLSuite) SetupTest() {
 	var err error
 	os.Clearenv()
 	suite.cfg, _ = config.Default(nil)
 	suite.Require().NoError(err)
 	r := repo.NewMemoryRepo()
-	suite.ShortURLService = NewShortURLService(suite.cfg, r)
-	suite.UserService = NewUserService(suite.cfg, r)
-	suite.Require().NoError(suite.UserService.Create(context.Background(), &models.User{}))
+	suite.ShortURL = NewShortURL(suite.cfg, r)
+	suite.User = NewUser(suite.cfg, r)
+	suite.Require().NoError(suite.User.Create(context.Background(), &models.User{}))
 }
 
-func (suite *shortURLServiceSuite) TestCreate() {
+func (suite *shortURLSuite) TestCreate() {
 	// Успешное создание короткой ссылки
 	suite.Run("success", func() {
-		shortURL, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		shortURL, err := suite.ShortURL.Create(context.Background(), 1, "https://google.com")
 		suite.NoError(err)
 		suite.NotNil(shortURL)
 		suite.Equal("https://google.com", shortURL.OriginalURL)
@@ -45,40 +45,40 @@ func (suite *shortURLServiceSuite) TestCreate() {
 	// Невалидный URL
 	suite.Run("invalid url", func() {
 		// Невалидный URL
-		_, err := suite.ShortURLService.Create(context.Background(), 1, "invalid url")
+		_, err := suite.ShortURL.Create(context.Background(), 1, "invalid url")
 		suite.Equal(ErrValidation, err)
 		// Недопустимый протокол
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "file:///tmp/test.txt")
+		_, err = suite.ShortURL.Create(context.Background(), 1, "file:///tmp/test.txt")
 		suite.Equal(ErrValidation, err)
 		// Пустой URL
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "")
+		_, err = suite.ShortURL.Create(context.Background(), 1, "")
 		suite.Equal(ErrValidation, err)
 		// Слишком длинный URL
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://google.com/"+strings.Repeat("a", models.URLMaxLen))
+		_, err = suite.ShortURL.Create(context.Background(), 1, "https://google.com/"+strings.Repeat("a", models.URLMaxLen))
 		suite.Equal(ErrValidation, err)
 	})
 
 	// Несуществующий пользователь
 	suite.Run("invalid user", func() {
-		_, err := suite.ShortURLService.Create(context.Background(), 100, "https://google.com")
+		_, err := suite.ShortURL.Create(context.Background(), 100, "https://google.com")
 		suite.Equal(ErrNotFound, err)
 	})
 
 	suite.Run("duplicate url", func() {
-		_, err := suite.ShortURLService.Create(context.Background(), 1, "https://duplicate.com")
+		_, err := suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
 		suite.NoError(err)
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://duplicate.com")
+		_, err = suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
 		suite.Equal(ErrDuplicate, err)
 	})
 }
 
-func (suite *shortURLServiceSuite) TestGetByID() {
+func (suite *shortURLSuite) TestGetByID() {
 	// Успешное получение короткой ссылки
 	suite.Run("success", func() {
-		shortURL, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		shortURL, err := suite.ShortURL.Create(context.Background(), 1, "https://google.com")
 		suite.NoError(err)
 		suite.NotNil(shortURL)
-		shortURL, err = suite.ShortURLService.GetByID(context.Background(), shortURL.ID)
+		shortURL, err = suite.ShortURL.GetByID(context.Background(), shortURL.ID)
 		suite.NoError(err)
 		suite.NotNil(shortURL)
 		suite.Equal("https://google.com", shortURL.OriginalURL)
@@ -88,19 +88,19 @@ func (suite *shortURLServiceSuite) TestGetByID() {
 
 	// Несуществующая короткая ссылка
 	suite.Run("not found", func() {
-		_, err := suite.ShortURLService.GetByID(context.Background(), "not found")
+		_, err := suite.ShortURL.GetByID(context.Background(), "not found")
 		suite.Equal(ErrNotFound, err)
 	})
 }
 
-func (suite *shortURLServiceSuite) TestGetByUserID() {
+func (suite *shortURLSuite) TestGetByUserID() {
 	// Успешное получение коротких ссылок пользователя
 	suite.Run("success", func() {
-		_, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		_, err := suite.ShortURL.Create(context.Background(), 1, "https://google.com")
 		suite.NoError(err)
-		_, err = suite.ShortURLService.Create(context.Background(), 1, "https://ya.ru")
+		_, err = suite.ShortURL.Create(context.Background(), 1, "https://ya.ru")
 		suite.NoError(err)
-		shortURLs, err := suite.ShortURLService.GetByUserID(context.Background(), 1)
+		shortURLs, err := suite.ShortURL.GetByUserID(context.Background(), 1)
 		suite.NoError(err)
 		suite.NotNil(shortURLs)
 		suite.Len(shortURLs, 2)
@@ -111,27 +111,27 @@ func (suite *shortURLServiceSuite) TestGetByUserID() {
 	// У пользователя нет коротких ссылок
 	suite.Run("no short urls", func() {
 		user := &models.User{}
-		suite.Require().NoError(suite.UserService.Create(context.Background(), user))
-		shortURLs, err := suite.ShortURLService.GetByUserID(context.Background(), user.ID)
+		suite.Require().NoError(suite.User.Create(context.Background(), user))
+		shortURLs, err := suite.ShortURL.GetByUserID(context.Background(), user.ID)
 		suite.NoError(err)
 		suite.Nil(shortURLs)
 	})
 
 	// Несуществующий пользователь
 	suite.Run("invalid user", func() {
-		urls, err := suite.ShortURLService.GetByUserID(context.Background(), 100)
+		urls, err := suite.ShortURL.GetByUserID(context.Background(), 100)
 		suite.NoError(err)
 		suite.Nil(urls)
 	})
 }
 
-func (suite *shortURLServiceSuite) TestGetByOriginalURL() {
+func (suite *shortURLSuite) TestGetByOriginalURL() {
 	// Успешное получение короткой ссылки по оригинальной
 	suite.Run("success", func() {
-		shortURL, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+		shortURL, err := suite.ShortURL.Create(context.Background(), 1, "https://google.com")
 		suite.NoError(err)
 		suite.NotNil(shortURL)
-		shortURL, err = suite.ShortURLService.GetByOriginalURL(context.Background(), "https://google.com")
+		shortURL, err = suite.ShortURL.GetByOriginalURL(context.Background(), "https://google.com")
 		suite.NoError(err)
 		suite.NotNil(shortURL)
 		suite.Equal("https://google.com", shortURL.OriginalURL)
@@ -141,17 +141,17 @@ func (suite *shortURLServiceSuite) TestGetByOriginalURL() {
 
 	// Несуществующая оригинальная ссылка
 	suite.Run("not found", func() {
-		_, err := suite.ShortURLService.GetByOriginalURL(context.Background(), "not found")
+		_, err := suite.ShortURL.GetByOriginalURL(context.Background(), "not found")
 		suite.Equal(ErrNotFound, err)
 	})
 }
 
-func (suite *shortURLServiceSuite) TestResolve() {
-	shortURL, err := suite.ShortURLService.Create(context.Background(), 1, "https://google.com")
+func (suite *shortURLSuite) TestResolve() {
+	shortURL, err := suite.ShortURL.Create(context.Background(), 1, "https://google.com")
 	suite.NoError(err)
-	suite.Equal(suite.cfg.BaseURL.String()+shortURL.ID, suite.ShortURLService.Resolve(shortURL.ID))
+	suite.Equal(suite.cfg.BaseURL.String()+shortURL.ID, suite.ShortURL.Resolve(shortURL.ID))
 }
 
-func TestShortURLServiceSuite(t *testing.T) {
-	suite.Run(t, new(shortURLServiceSuite))
+func TestShortURLSuite(t *testing.T) {
+	suite.Run(t, new(shortURLSuite))
 }

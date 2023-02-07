@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
 // @Title Go-Shortener API
@@ -25,11 +25,11 @@ import (
 
 // APIHandlers - HTTP-хендлеры для JSON API
 type APIHandlers struct {
-	srv *services.Container
+	u *usecases.Container
 }
 
 // NewAPIHandlers - конструктор APIHandlers
-func NewAPIHandlers(srv *services.Container) *APIHandlers {
+func NewAPIHandlers(srv *usecases.Container) *APIHandlers {
 	return &APIHandlers{srv}
 }
 
@@ -90,12 +90,12 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Создаем сокращенную ссылку
 	statusCode := http.StatusCreated
-	shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, reqJSON.URL)
+	shortURL, err := h.u.ShortURL.Create(r.Context(), userID, reqJSON.URL)
 
 	// Если ссылка уже существует, запрашиваем ее
-	if errors.Is(err, services.ErrDuplicate) {
+	if errors.Is(err, usecases.ErrDuplicate) {
 		statusCode = http.StatusConflict
-		shortURL, err = h.srv.ShortURLService.GetByOriginalURL(r.Context(), reqJSON.URL)
+		shortURL, err = h.u.ShortURL.GetByOriginalURL(r.Context(), reqJSON.URL)
 	}
 
 	if err != nil {
@@ -106,7 +106,7 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	// Возвращаем ответ
 	respondWithJSON(w,
 		statusCode,
-		resType{Result: h.srv.ShortURLService.Resolve(shortURL.ID)})
+		resType{Result: h.u.ShortURL.Resolve(shortURL.ID)})
 }
 
 // shortURLCreateBatch - принимает в теле запроса список строк URL для сокращения:
@@ -170,14 +170,14 @@ func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request)
 	// Создаем сокращенные ссылки
 	resJSON := make([]resType, len(reqJSON))
 	for i, item := range reqJSON {
-		shortURL, err := h.srv.ShortURLService.Create(r.Context(), userID, item.OriginalURL)
+		shortURL, err := h.u.ShortURL.Create(r.Context(), userID, item.OriginalURL)
 		if err != nil {
 			respondWithError(w, err)
 			return
 		}
 		resJSON[i] = resType{
 			CorrelationID: item.CorrelationID,
-			ShortURL:      h.srv.ShortURLService.Resolve(shortURL.ID),
+			ShortURL:      h.u.ShortURL.Resolve(shortURL.ID),
 		}
 	}
 
@@ -230,7 +230,7 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusAccepted)
 
 	// Удаляем ссылки
-	_ = h.srv.ShortURLService.DeleteBatch(r.Context(), userID, reqJSON)
+	_ = h.u.ShortURL.DeleteBatch(r.Context(), userID, reqJSON)
 }
 
 // shortURLGetByUserID - возвращает список сокращенных ссылок пользователя.
@@ -269,7 +269,7 @@ func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Получаем список сокращенных ссылок пользователя
-	shortURLs, err := h.srv.ShortURLService.GetByUserID(r.Context(), userID)
+	shortURLs, err := h.u.ShortURL.GetByUserID(r.Context(), userID)
 	if err != nil {
 		respondWithError(w, err)
 		return
@@ -285,7 +285,7 @@ func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request)
 	res := make([]resType, len(shortURLs))
 	for i := range shortURLs {
 		res[i] = resType{
-			ShortURL:    h.srv.ShortURLService.Resolve(shortURLs[i].ID),
+			ShortURL:    h.u.ShortURL.Resolve(shortURLs[i].ID),
 			OriginalURL: shortURLs[i].OriginalURL,
 		}
 	}

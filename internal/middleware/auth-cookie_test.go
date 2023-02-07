@@ -9,8 +9,8 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/repo"
+	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
 var _ = Describe("AuthCookie Middleware", func() {
@@ -20,7 +20,7 @@ var _ = Describe("AuthCookie Middleware", func() {
 
 	BeforeEach(func() {
 		repository := repo.NewMemoryRepo()
-		srv := services.NewContainer(cfg, repository)
+		srv := usecases.NewContainer(cfg, repository)
 		server = ghttp.NewServer()
 		r := chi.NewRouter()
 		r.Use(NewAuthCookie(srv).WithSecret([]byte(cfg.AuthSecret)).Handler)
