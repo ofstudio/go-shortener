@@ -28,8 +28,13 @@ func main() {
 	// Выводим информацию о сборке
 	fmt.Print(buildInfo())
 
-	// Считываем конфигурацию: по-умолчанию => из переменных окружения => из командной строки
-	cfg, err := config.Compose(config.Default, config.FromEnv, config.FromCLI)
+	// Считываем конфигурацию
+	cfg, err := config.Compose(
+		config.Default,                   // Значения по умолчанию
+		config.FromJSONFile(os.Args[1:]), // Значения из JSON-файла
+		config.FromEnv,                   // Значения из переменных окружения
+		config.FromCLI(os.Args[1:]),      // Значения из флагов командной строки
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
