@@ -59,7 +59,7 @@ jobs:
       - name: Build server binary
         run: |
           cd cmd/shortener
-          go build -buildvcs=false -o shortener
+          go build -o shortener
 
       - name: "Code increment #1"
         if: |
