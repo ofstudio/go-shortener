@@ -13,7 +13,7 @@ import (
 //		-b <url>       - базовый адрес сокращённого URL
 //		-s             - использовать HTTPS с самоподписанным сертификатом
 //		-f <path>      - файл для хранения данных
-//		-t <duration>  - время жизни авторизационного токена
+//		-t <cidr>      - подсеть, из которой разрешено обращение к внутреннему API
 //		-d <dsn>       - строка с адресом подключения к БД
 //
 // Если какие-либо значения не заданы в командной строке, то используются значения переданные в cfg.
@@ -40,6 +40,6 @@ func flagSet(cfg *Config) *flag.FlagSet {
 	f.Func("b", "Base URL", urlParseFunc(&cfg.BaseURL))
 	f.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File storage path")
 	f.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "Database DSN")
-	f.DurationVar(&cfg.AuthTTL, "t", cfg.AuthTTL, "Auth token TTL")
+	f.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "Trusted IP subnet for internal API access")
 	return f
 }

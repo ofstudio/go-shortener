@@ -66,7 +66,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_all() {
 		"-a", "127.0.0.0:8888",
 		"-b", "https://example.com/",
 		"-f", "/tmp/shortener.aof",
-		"-t", "1h",
+		"-t", "192.168.0.0/16",
 	}
 
 	defaultCfg := suite.defaultCfg()
@@ -77,7 +77,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_all() {
 	suite.Equal("127.0.0.0:8888", actualCfg.ServerAddress)
 	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
 	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
-	suite.Equal(time.Hour*1, actualCfg.AuthTTL)
+	suite.Equal("192.168.0.0/16", actualCfg.TrustedSubnet)
 
 	// Проверяем, что остальные параметры установлены в значения по умолчанию
 	suite.Equal(defaultCfg.AuthSecret, actualCfg.AuthSecret)
@@ -168,6 +168,7 @@ func (suite *configSuite) TestFromJSONFile() {
 		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
 		suite.Equal("", cfg.DatabaseDSN)
 		suite.Equal(true, cfg.EnableHTTPS)
+		suite.Equal("192.168.0.0/16", cfg.TrustedSubnet)
 	})
 	suite.Run("mistype", func() {
 		os.Setenv("CONFIG", "testdata/cfg-mistype.json")

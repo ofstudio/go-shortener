@@ -28,6 +28,9 @@ type Config struct {
 	// AuthSecret - секретный ключ для подписи авторизационного токена
 	AuthSecret string `env:"AUTH_SECRET,unset"`
 
+	// TrustedSubnet - подсеть, из которой разрешено обращение к внутреннему API
+	TrustedSubnet string `env:"TRUSTED_SUBNET"`
+
 	// configFName - имя файла конфигурации
 	configFName string
 

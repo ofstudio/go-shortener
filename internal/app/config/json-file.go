@@ -12,6 +12,7 @@ type jsonDTO struct {
 	BaseURL         string `json:"base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 	EnableHTTPS     bool   `json:"enable_https"`
 }
 
@@ -79,6 +80,9 @@ func FromJSONFile(args ...string) CfgFunc {
 			}
 			if dto.EnableHTTPS {
 				cfg.EnableHTTPS = dto.EnableHTTPS
+			}
+			if dto.TrustedSubnet != "" {
+				cfg.TrustedSubnet = dto.TrustedSubnet
 			}
 
 			// Проверяем конфигурацию.
