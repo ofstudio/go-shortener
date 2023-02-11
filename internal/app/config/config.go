@@ -31,7 +31,6 @@ type Config struct {
 	// configFName - имя файла конфигурации
 	configFName string
 
-	// TLS - настройки TLS
 	TLS TLS
 
 	// EnableHTTPS - использовать самоподписный TLS
