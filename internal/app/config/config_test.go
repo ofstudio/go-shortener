@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"os"
 	"testing"
 	"time"
@@ -69,7 +70,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_all() {
 	}
 
 	defaultCfg := suite.defaultCfg()
-	actualCfg, err := fromCLI(defaultCfg, args...)
+	actualCfg, err := FromCLI(args...)(defaultCfg)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны все заданные флаги
@@ -97,7 +98,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 	defaultCfg := suite.defaultCfg()
 	actualCfg, err := FromEnv(defaultCfg)
 	suite.NoError(err)
-	actualCfg, err = fromCLI(actualCfg, args...)
+	actualCfg, err = FromCLI(args...)(actualCfg)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны заданные флаги
@@ -116,7 +117,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 func (suite *configSuite) TestValidateBaseURL() {
 
 	// Проверяем на невалидный URL
-	_, err := fromCLI(suite.defaultCfg(), []string{"-a", "not-a-valid-url"}...)
+	_, err := FromCLI("-a", "not-a-valid-url")(suite.defaultCfg())
 	suite.Error(err)
 	suite.setenv(map[string]string{"BASE_URL": "ftps://example.com/"})
 	_, err = FromEnv(suite.defaultCfg())
@@ -127,7 +128,7 @@ func (suite *configSuite) TestValidateBaseURL() {
 	actualCfg, err := FromEnv(suite.defaultCfg())
 	suite.NoError(err)
 	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
-	actualCfg, err = fromCLI(suite.defaultCfg(), []string{"-b", "https://example.com/subpath"}...)
+	actualCfg, err = FromCLI("-b", "https://example.com/subpath")(suite.defaultCfg())
 	suite.NoError(err)
 	suite.Equal("https://example.com/subpath/", actualCfg.BaseURL.String())
 
@@ -135,17 +136,77 @@ func (suite *configSuite) TestValidateBaseURL() {
 	suite.setenv(map[string]string{"BASE_URL": "https://example.com/subpath?param=1"})
 	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
-	_, err = fromCLI(suite.defaultCfg(), []string{"-b", "https://example.com/subpath#fragment"}...)
+	_, err = FromCLI("-b", "https://example.com/subpath#fragment")(suite.defaultCfg())
 	suite.Error(err)
 }
 
 func (suite *configSuite) TestValidateServerAddress() {
 	// Проверяем на невалидный адрес сервера
-	_, err := fromCLI(suite.defaultCfg(), []string{"-a", "not-a-valid-tcp-address"}...)
+	_, err := FromCLI("-a", "not-a-valid-tcp-address")(suite.defaultCfg())
 	suite.Error(err)
 	suite.setenv(map[string]string{"SERVER_ADDRESS": "0.0.0.0:100000"})
 	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
+}
+
+func (suite *configSuite) TestFromJSONFile() {
+	suite.Run("valid from cli", func() {
+		cfg, err := FromJSONFile("-c", "testdata/cfg-valid.json")(suite.defaultCfg())
+		suite.Require().NoError(err)
+		suite.Equal("localhost:8080", cfg.ServerAddress)
+		suite.Equal("http://localhost/", cfg.BaseURL.String())
+		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
+		suite.Equal("", cfg.DatabaseDSN)
+		suite.Equal(true, cfg.EnableHTTPS)
+	})
+	suite.Run("valid from env", func() {
+		os.Setenv("CONFIG", "testdata/cfg-valid.json")
+		cfg, err := FromJSONFile()(suite.defaultCfg())
+		suite.Require().NoError(err)
+		suite.Equal("localhost:8080", cfg.ServerAddress)
+		suite.Equal("http://localhost/", cfg.BaseURL.String())
+		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
+		suite.Equal("", cfg.DatabaseDSN)
+		suite.Equal(true, cfg.EnableHTTPS)
+	})
+	suite.Run("mistype", func() {
+		os.Setenv("CONFIG", "testdata/cfg-mistype.json")
+		_, err := FromJSONFile()(suite.defaultCfg())
+		suite.Error(err)
+	})
+	suite.Run("unknown", func() {
+		os.Setenv("CONFIG", "testdata/cfg-unknown.json")
+		_, err := FromJSONFile()(suite.defaultCfg())
+		suite.Error(err)
+	})
+}
+
+func (suite *configSuite) TestTLS_validate() {
+	t := &TLS{
+		Hosts: []string{"example.com"},
+		Curve: tls.CurveP256,
+		TTL:   time.Hour,
+	}
+	suite.NoError(t.validate())
+
+	t.Hosts = []string{"example.com", "example.org", "127.0.0.1"}
+	suite.NoError(t.validate())
+
+	t.Hosts = []string{}
+	suite.Error(t.validate())
+
+	t.Hosts = nil
+	suite.Error(t.validate())
+
+	t.Hosts = []string{"example.com"}
+	t.TTL = 0
+	suite.Error(t.validate())
+
+	t.TTL = -1
+	suite.Error(t.validate())
+
+	t = &TLS{}
+	suite.Error(t.validate())
 }
 
 func TestConfigSuite(t *testing.T) {

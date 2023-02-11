@@ -14,17 +14,17 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
+	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
 var _ = Describe("POST /shorten ", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := services.NewContainer(cfg, repository)
+	srv := usecases.NewContainer(cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -119,7 +119,7 @@ var _ = Describe("POST /shorten/batch", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := services.NewContainer(cfg, repository)
+	srv := usecases.NewContainer(cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -166,7 +166,7 @@ var _ = Describe("GET /user/urls", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := services.NewContainer(cfg, repository)
+	srv := usecases.NewContainer(cfg, repository)
 	var cookie *http.Cookie
 
 	BeforeEach(func() {
@@ -230,7 +230,7 @@ var _ = Describe("DELETE /user/urls", func() {
 	var cookie *http.Cookie
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := services.NewContainer(cfg, repository)
+	srv := usecases.NewContainer(cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()

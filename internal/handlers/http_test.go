@@ -12,17 +12,17 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/app/services"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
+	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
 var _ = Describe("shortURL handlers", func() {
 	server := &ghttp.Server{}
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := services.NewContainer(cfg, repository)
+	srv := usecases.NewContainer(cfg, repository)
 	shortURLPath := ""
 
 	BeforeEach(func() {

@@ -38,12 +38,13 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Download autotests binaries
-        uses: robinraju/release-downloader@v1.2
+        uses: robinraju/release-downloader@v1.7
         with:
           repository: Yandex-Practicum/go-autotests
           latest: true
           fileName: "*"
           out-file-path: .tools
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup autotest binary
         run: |
@@ -58,7 +59,7 @@ jobs:
       - name: Build server binary
         run: |
           cd cmd/shortener
-          go build -o shortener
+          go build -buildvcs=false -o shortener
 
       - name: "Code increment #1"
         if: |

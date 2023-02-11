@@ -1,15 +1,12 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/caarlos0/env/v6"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -31,6 +28,14 @@ type Config struct {
 	// AuthSecret - секретный ключ для подписи авторизационного токена
 	AuthSecret string `env:"AUTH_SECRET,unset"`
 
+	// configFName - имя файла конфигурации
+	configFName string
+
+	TLS TLS
+
+	// EnableHTTPS - использовать самоподписный TLS
+	EnableHTTPS bool `env:"ENABLE_HTTPS"`
+
 	// AuthTTL - время жизни авторизационного токена
 	AuthTTL time.Duration `env:"AUTH_TTL"`
 }
@@ -45,6 +50,8 @@ func Default(_ *Config) (*Config, error) {
 	cfg := Config{
 		BaseURL:       url.URL{Scheme: "http", Host: "localhost:8080", Path: "/"},
 		ServerAddress: "0.0.0.0:8080",
+		EnableHTTPS:   false,
+		TLS:           tlsDefault,
 		AuthTTL:       time.Minute * 60 * 24 * 30,
 		AuthSecret:    secret,
 		DatabaseDSN:   "",
@@ -55,70 +62,13 @@ func Default(_ *Config) (*Config, error) {
 	return &cfg, nil
 }
 
-// FromCLI - конфигурационная функция, которая считывает конфигурацию приложения из переменных окружения.
-//
-// Флаги командной строки:
-//
-//	-a <host:port> - адрес для запуска HTTP-сервера
-//	-b <url>       - базовый адрес сокращённого URL
-//	-f <path>      - файл для хранения данных
-//	-t <duration>  - время жизни авторизационного токена
-//	-d <dsn>       - строка с адресом подключения к БД
-//
-// Если какие-либо значения не заданы в командной строке, то используются значения переданные в cfg.
-func FromCLI(cfg *Config) (*Config, error) {
-	return fromCLI(cfg, os.Args[1:]...)
-}
-
-// fromCLI - логика для NewFromEnvAndCLI.
-// Вынесена отдельно в целях тестирования.
-func fromCLI(cfg *Config, arguments ...string) (*Config, error) {
-	// Парсим командную строку
-	cli := flag.NewFlagSet("config", flag.ExitOnError)
-	cli.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "HTTP server address")
-	cli.Func("b", "Base URL", urlParseFunc(&cfg.BaseURL))
-	cli.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File storage path (default: in-memory)")
-	cli.DurationVar(&cfg.AuthTTL, "t", cfg.AuthTTL, "Auth token TTL")
-	cli.StringVar(&cfg.DatabaseDSN, "d", cfg.DatabaseDSN, "Database DSN")
-	if err := cli.Parse(arguments); err != nil {
-		return nil, err
-	}
-
-	if err := cfg.validate(); err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
-// FromEnv - конфигурационная функция, которая читывает конфигурацию приложения из переменных окружения.
-//
-// Переменные окружения:
-//
-//	SERVER_ADDRESS    - адрес для запуска HTTP-сервера
-//	BASE_URL          - базовый адрес сокращённого URL
-//	FILE_STORAGE_PATH - файл для хранения данных
-//	AUTH_TTL          - время жизни авторизационного токена
-//	AUTH_SECRET       - секретный ключ для подписи авторизационного токена
-//
-// Если какие-либо переменные окружения не заданы, то используются значения переданные в cfg.
-func FromEnv(cfg *Config) (*Config, error) {
-	// Получаем параметры из окружения
-	err := env.Parse(cfg)
-	if err != nil {
-		return nil, err
-	}
-	if err = cfg.validate(); err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
 // validate - проверяет конфигурацию на валидность
 func (c *Config) validate() error {
 	g := &errgroup.Group{}
 	g.Go(c.validateAuthSecret)
 	g.Go(c.validateBaseURL)
 	g.Go(c.validateServerAddr)
+	g.Go(c.TLS.validate)
 	return g.Wait()
 }
 
