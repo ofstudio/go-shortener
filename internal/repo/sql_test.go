@@ -74,6 +74,15 @@ func (suite *sqlRepoSuite) TestUserGetByID_NotFound() {
 	suite.Equal(ErrNotFound, err)
 }
 
+func (suite *sqlRepoSuite) TestUserCount() {
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	count, err := suite.repo.UserCount(context.Background())
+	suite.NoError(err)
+	suite.Equal(3, int(count))
+}
+
 func (suite *sqlRepoSuite) TestShortURLCreate() {
 	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
 	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
@@ -198,6 +207,20 @@ func (suite *sqlRepoSuite) TestShortURLDeleteBatch() {
 	suite.NoError(err)
 	suite.NotNil(actual)
 	suite.Equal(false, actual.Deleted, "should not be deleted")
+}
+
+func (suite *sqlRepoSuite) TestShortURLCount() {
+	suite.NoError(suite.repo.UserCreate(context.Background(), &models.User{}))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+	count, err := suite.repo.ShortURLCount(context.Background())
+	suite.NoError(err)
+	suite.Equal(2, int(count))
+
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[2]))
+	count, err = suite.repo.ShortURLCount(context.Background())
+	suite.NoError(err)
+	suite.Equal(3, int(count))
 }
 
 func testIsDBAvailable(dsn string) bool {

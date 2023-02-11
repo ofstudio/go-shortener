@@ -12,6 +12,8 @@ type IRepo interface {
 	UserCreate(context.Context, *models.User) error
 	// UserGetByID - возвращает пользователя по его id.
 	UserGetByID(context.Context, uint) (*models.User, error)
+	// UserCount - возвращает количество пользователей в репозитории.
+	UserCount(context.Context) (int, error)
 	// ShortURLCreate - добавляет новую сокращенную ссылку в репозиторий.
 	ShortURLCreate(context.Context, *models.ShortURL) error
 	// ShortURLGetByID - возвращает сокращенную ссылку по ее id.
@@ -27,5 +29,7 @@ type IRepo interface {
 	// Принимает на вход список каналов для передачи идентификаторов.
 	// Возвращает количество удаленных сокращенных ссылок.
 	ShortURLDeleteBatch(context.Context, uint, ...chan string) (int64, error)
+	// ShortURLCount - возвращает количество сокращенных ссылок в репозитории.
+	ShortURLCount(context.Context) (int, error)
 	Close() error
 }

@@ -79,6 +79,16 @@ func (r *SQLRepo) UserGetByID(ctx context.Context, id uint) (*models.User, error
 	return &u, nil
 }
 
+// UserCount - возвращает количество пользователей в репозитории.
+func (r *SQLRepo) UserCount(ctx context.Context) (int, error) {
+	if r.db == nil {
+		return 0, ErrDBNotInitialized
+	}
+	var count int
+	err := r.st[stmtUserCount].QueryRowContext(ctx).Scan(&count)
+	return count, err
+}
+
 // ShortURLCreate - добавляет новую сокращенную ссылку в репозиторий.
 func (r *SQLRepo) ShortURLCreate(ctx context.Context, url *models.ShortURL) error {
 	if r.db == nil {
@@ -211,4 +221,14 @@ func (r *SQLRepo) ShortURLDeleteBatch(ctx context.Context, userID uint, chans ..
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+// ShortURLCount - возвращает количество сокращенных ссылок в репозитории.
+func (r *SQLRepo) ShortURLCount(ctx context.Context) (int, error) {
+	if r.db == nil {
+		return 0, ErrDBNotInitialized
+	}
+	var count int
+	err := r.st[stmtShortURLCount].QueryRowContext(ctx).Scan(&count)
+	return count, err
 }

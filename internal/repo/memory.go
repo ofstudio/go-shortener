@@ -54,6 +54,13 @@ func (r *MemoryRepo) UserGetByID(_ context.Context, id uint) (*models.User, erro
 	return nil, ErrNotFound
 }
 
+// UserCount - возвращает количество пользователей в репозитории.
+func (r *MemoryRepo) UserCount(_ context.Context) (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.users), nil
+}
+
 // ShortURLCreate - создает новую короткую ссылку в репозитории.
 // Если короткая ссылка с таким id уже существует, возвращает ErrDuplicate.
 func (r *MemoryRepo) ShortURLCreate(_ context.Context, shortURL *models.ShortURL) error {
@@ -156,6 +163,13 @@ func (r *MemoryRepo) ShortURLDelete(_ context.Context, userID uint, id string) e
 	shortURL.Deleted = true
 	r.shortURLs[id] = shortURL
 	return nil
+}
+
+// ShortURLCount - возвращает количество сокращенных ссылок в репозитории.
+func (r *MemoryRepo) ShortURLCount(_ context.Context) (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.shortURLs), nil
 }
 
 // Close - закрывает репозиторий для записи.

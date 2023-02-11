@@ -61,6 +61,16 @@ func (suite *memoryRepoSuite) TestUserGetByID() {
 	suite.Equal(ErrNotFound, err)
 }
 
+func (suite *memoryRepoSuite) TestUserCount() {
+	for i := 0; i < 10; i++ {
+		user := &models.User{}
+		suite.NoError(suite.repo.UserCreate(context.Background(), user))
+	}
+	count, err := suite.repo.UserCount(context.Background())
+	suite.NoError(err)
+	suite.Equal(10, count)
+}
+
 func (suite *memoryRepoSuite) TestShortURLCreate() {
 	// Создаем первую сокращенную ссылку
 	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
@@ -174,6 +184,17 @@ func (suite *memoryRepoSuite) TestShortURLDeleteBatch() {
 	suite.NoError(err)
 	suite.NotNil(actual)
 	suite.Equal(false, actual.Deleted, "should not be deleted")
+}
+
+func (suite *memoryRepoSuite) TestShortURLCount() {
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[0]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[1]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[2]))
+	suite.NoError(suite.repo.ShortURLCreate(context.Background(), suite.testShortURLs[3]))
+
+	count, err := suite.repo.ShortURLCount(context.Background())
+	suite.NoError(err)
+	suite.Equal(4, count)
 }
 
 func (suite *memoryRepoSuite) Test_autoIncrement() {
