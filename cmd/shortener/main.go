@@ -19,10 +19,10 @@ func main() {
 
 	// Считываем конфигурацию
 	cfg, err := config.Compose(
-		config.Default,                   // Значения по умолчанию
-		config.FromJSONFile(os.Args[1:]), // Значения из JSON-файла
-		config.FromEnv,                   // Значения из переменных окружения
-		config.FromCLI(os.Args[1:]),      // Значения из флагов командной строки
+		config.Default,                      // Значения по умолчанию
+		config.FromJSONFile(os.Args[1:]...), // Значения из JSON-файла
+		config.FromEnv,                      // Значения из переменных окружения
+		config.FromCLI(os.Args[1:]...),      // Значения из флагов командной строки
 	)
 	if err != nil {
 		log.Fatal(err)

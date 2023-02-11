@@ -30,7 +30,7 @@ type jsonDTO struct {
 // Имя файла конфигурации можно задать (в порядке приоритета):
 //  1. через переменную окружения CONFIG
 //  2. через флаг -c командной строки
-func FromJSONFile(args []string) CfgFunc {
+func FromJSONFile(args ...string) CfgFunc {
 	return func(cfg *Config) (*Config, error) {
 		// Считываем предварительную конфигурацию из переменных окружения…
 		preCfg := &Config{

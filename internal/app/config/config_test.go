@@ -70,7 +70,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_all() {
 	}
 
 	defaultCfg := suite.defaultCfg()
-	actualCfg, err := FromCLI(args)(defaultCfg)
+	actualCfg, err := FromCLI(args...)(defaultCfg)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны все заданные флаги
@@ -98,7 +98,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 	defaultCfg := suite.defaultCfg()
 	actualCfg, err := FromEnv(defaultCfg)
 	suite.NoError(err)
-	actualCfg, err = FromCLI(args)(actualCfg)
+	actualCfg, err = FromCLI(args...)(actualCfg)
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны заданные флаги
@@ -117,7 +117,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 func (suite *configSuite) TestValidateBaseURL() {
 
 	// Проверяем на невалидный URL
-	_, err := FromCLI([]string{"-a", "not-a-valid-url"})(suite.defaultCfg())
+	_, err := FromCLI("-a", "not-a-valid-url")(suite.defaultCfg())
 	suite.Error(err)
 	suite.setenv(map[string]string{"BASE_URL": "ftps://example.com/"})
 	_, err = FromEnv(suite.defaultCfg())
@@ -128,7 +128,7 @@ func (suite *configSuite) TestValidateBaseURL() {
 	actualCfg, err := FromEnv(suite.defaultCfg())
 	suite.NoError(err)
 	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
-	actualCfg, err = FromCLI([]string{"-b", "https://example.com/subpath"})(suite.defaultCfg())
+	actualCfg, err = FromCLI("-b", "https://example.com/subpath")(suite.defaultCfg())
 	suite.NoError(err)
 	suite.Equal("https://example.com/subpath/", actualCfg.BaseURL.String())
 
@@ -136,13 +136,13 @@ func (suite *configSuite) TestValidateBaseURL() {
 	suite.setenv(map[string]string{"BASE_URL": "https://example.com/subpath?param=1"})
 	_, err = FromEnv(suite.defaultCfg())
 	suite.Error(err)
-	_, err = FromCLI([]string{"-b", "https://example.com/subpath#fragment"})(suite.defaultCfg())
+	_, err = FromCLI("-b", "https://example.com/subpath#fragment")(suite.defaultCfg())
 	suite.Error(err)
 }
 
 func (suite *configSuite) TestValidateServerAddress() {
 	// Проверяем на невалидный адрес сервера
-	_, err := FromCLI([]string{"-a", "not-a-valid-tcp-address"})(suite.defaultCfg())
+	_, err := FromCLI("-a", "not-a-valid-tcp-address")(suite.defaultCfg())
 	suite.Error(err)
 	suite.setenv(map[string]string{"SERVER_ADDRESS": "0.0.0.0:100000"})
 	_, err = FromEnv(suite.defaultCfg())
@@ -151,8 +151,8 @@ func (suite *configSuite) TestValidateServerAddress() {
 
 func (suite *configSuite) TestFromJSONFile() {
 	suite.Run("valid from cli", func() {
-		cfg, err := FromJSONFile([]string{"-c", "testdata/cfg-valid.json"})(suite.defaultCfg())
-		suite.NoError(err)
+		cfg, err := FromJSONFile("-c", "testdata/cfg-valid.json")(suite.defaultCfg())
+		suite.Require().NoError(err)
 		suite.Equal("localhost:8080", cfg.ServerAddress)
 		suite.Equal("http://localhost/", cfg.BaseURL.String())
 		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
@@ -161,8 +161,8 @@ func (suite *configSuite) TestFromJSONFile() {
 	})
 	suite.Run("valid from env", func() {
 		os.Setenv("CONFIG", "testdata/cfg-valid.json")
-		cfg, err := FromJSONFile([]string{})(suite.defaultCfg())
-		suite.NoError(err)
+		cfg, err := FromJSONFile()(suite.defaultCfg())
+		suite.Require().NoError(err)
 		suite.Equal("localhost:8080", cfg.ServerAddress)
 		suite.Equal("http://localhost/", cfg.BaseURL.String())
 		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
@@ -171,12 +171,12 @@ func (suite *configSuite) TestFromJSONFile() {
 	})
 	suite.Run("mistype", func() {
 		os.Setenv("CONFIG", "testdata/cfg-mistype.json")
-		_, err := FromJSONFile([]string{})(suite.defaultCfg())
+		_, err := FromJSONFile()(suite.defaultCfg())
 		suite.Error(err)
 	})
 	suite.Run("unknown", func() {
 		os.Setenv("CONFIG", "testdata/cfg-unknown.json")
-		_, err := FromJSONFile([]string{})(suite.defaultCfg())
+		_, err := FromJSONFile()(suite.defaultCfg())
 		suite.Error(err)
 	})
 }

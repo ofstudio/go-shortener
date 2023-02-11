@@ -17,7 +17,7 @@ import (
 //		-d <dsn>       - строка с адресом подключения к БД
 //
 // Если какие-либо значения не заданы в командной строке, то используются значения переданные в cfg.
-func FromCLI(args []string) CfgFunc {
+func FromCLI(args ...string) CfgFunc {
 	return func(cfg *Config) (*Config, error) {
 		f := flagSet(cfg)
 		if err := f.Parse(args); err != nil {
