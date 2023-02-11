@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/ofstudio/go-shortener/internal/app"
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
@@ -46,29 +47,29 @@ func (suite *shortURLSuite) TestCreate() {
 	suite.Run("invalid url", func() {
 		// Невалидный URL
 		_, err := suite.ShortURL.Create(context.Background(), 1, "invalid url")
-		suite.Equal(ErrValidation, err)
+		suite.Equal(app.ErrValidation, err)
 		// Недопустимый протокол
 		_, err = suite.ShortURL.Create(context.Background(), 1, "file:///tmp/test.txt")
-		suite.Equal(ErrValidation, err)
+		suite.Equal(app.ErrValidation, err)
 		// Пустой URL
 		_, err = suite.ShortURL.Create(context.Background(), 1, "")
-		suite.Equal(ErrValidation, err)
+		suite.Equal(app.ErrValidation, err)
 		// Слишком длинный URL
 		_, err = suite.ShortURL.Create(context.Background(), 1, "https://google.com/"+strings.Repeat("a", models.URLMaxLen))
-		suite.Equal(ErrValidation, err)
+		suite.Equal(app.ErrValidation, err)
 	})
 
 	// Несуществующий пользователь
 	suite.Run("invalid user", func() {
 		_, err := suite.ShortURL.Create(context.Background(), 100, "https://google.com")
-		suite.Equal(ErrNotFound, err)
+		suite.Equal(app.ErrNotFound, err)
 	})
 
 	suite.Run("duplicate url", func() {
 		_, err := suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
 		suite.NoError(err)
 		_, err = suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
-		suite.Equal(ErrDuplicate, err)
+		suite.Equal(app.ErrDuplicate, err)
 	})
 }
 
@@ -89,7 +90,7 @@ func (suite *shortURLSuite) TestGetByID() {
 	// Несуществующая короткая ссылка
 	suite.Run("not found", func() {
 		_, err := suite.ShortURL.GetByID(context.Background(), "not found")
-		suite.Equal(ErrNotFound, err)
+		suite.Equal(app.ErrNotFound, err)
 	})
 }
 
@@ -142,7 +143,7 @@ func (suite *shortURLSuite) TestGetByOriginalURL() {
 	// Несуществующая оригинальная ссылка
 	suite.Run("not found", func() {
 		_, err := suite.ShortURL.GetByOriginalURL(context.Background(), "not found")
-		suite.Equal(ErrNotFound, err)
+		suite.Equal(app.ErrNotFound, err)
 	})
 }
 

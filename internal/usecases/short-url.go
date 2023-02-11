@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/url"
 
+	"github.com/ofstudio/go-shortener/internal/app"
 	"github.com/ofstudio/go-shortener/internal/app/config"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
@@ -32,9 +33,9 @@ func (u ShortURL) Create(ctx context.Context, userID uint, OriginalURL string) (
 	// Проверяем, существует ли такой пользователь
 	_, err := u.repo.UserGetByID(ctx, userID)
 	if errors.Is(err, repo.ErrNotFound) {
-		return nil, ErrNotFound
+		return nil, app.ErrNotFound
 	} else if err != nil {
-		return nil, ErrInternal
+		return nil, app.ErrInternal
 	}
 
 	// Создаем модель и сохраняем в репозиторий
@@ -47,9 +48,9 @@ func (u ShortURL) Create(ctx context.Context, userID uint, OriginalURL string) (
 
 	// Если такой URL уже существует, возвращаем ErrDuplicate
 	if errors.Is(err, repo.ErrDuplicate) {
-		return nil, ErrDuplicate
+		return nil, app.ErrDuplicate
 	} else if err != nil {
-		return nil, ErrInternal
+		return nil, app.ErrInternal
 	}
 	// Возвращаем модель
 	return shortURL, nil
@@ -59,13 +60,13 @@ func (u ShortURL) Create(ctx context.Context, userID uint, OriginalURL string) (
 func (u ShortURL) GetByID(ctx context.Context, id string) (*models.ShortURL, error) {
 	shortURL, err := u.repo.ShortURLGetByID(ctx, id)
 	if errors.Is(err, repo.ErrNotFound) {
-		return nil, ErrNotFound
+		return nil, app.ErrNotFound
 	} else if err != nil {
-		return nil, ErrInternal
+		return nil, app.ErrInternal
 	}
 	// Проверяем, не помечена ли ссылка как удаленная
 	if shortURL.Deleted {
-		return nil, ErrDeleted
+		return nil, app.ErrDeleted
 	}
 	return shortURL, nil
 }
@@ -74,9 +75,9 @@ func (u ShortURL) GetByID(ctx context.Context, id string) (*models.ShortURL, err
 func (u ShortURL) GetByUserID(ctx context.Context, id uint) ([]models.ShortURL, error) {
 	shortURLs, err := u.repo.ShortURLGetByUserID(ctx, id)
 	if errors.Is(err, repo.ErrNotFound) {
-		return nil, ErrNotFound
+		return nil, app.ErrNotFound
 	} else if err != nil {
-		return nil, ErrInternal
+		return nil, app.ErrInternal
 	}
 	// Отфильтровываем ссылки, помеченные как удаленные
 	var result []models.ShortURL
@@ -92,13 +93,13 @@ func (u ShortURL) GetByUserID(ctx context.Context, id uint) ([]models.ShortURL, 
 func (u ShortURL) GetByOriginalURL(ctx context.Context, rawURL string) (*models.ShortURL, error) {
 	shortURL, err := u.repo.ShortURLGetByOriginalURL(ctx, rawURL)
 	if errors.Is(err, repo.ErrNotFound) {
-		return nil, ErrNotFound
+		return nil, app.ErrNotFound
 	} else if err != nil {
-		return nil, ErrInternal
+		return nil, app.ErrInternal
 	}
 	// Проверяем, не помечена ли ссылка как удаленная
 	if shortURL.Deleted {
-		return nil, ErrDeleted
+		return nil, app.ErrDeleted
 	}
 	return shortURL, nil
 }
@@ -117,7 +118,7 @@ func (u ShortURL) DeleteBatch(ctx context.Context, userID uint, ids []string) er
 
 	chans := fanOut(ctx, ch)
 	if _, err := u.repo.ShortURLDeleteBatch(ctx, userID, chans...); err != nil {
-		return ErrInternal
+		return app.ErrInternal
 	}
 	return nil
 }
@@ -131,19 +132,19 @@ func (u ShortURL) Resolve(id string) string {
 func (u ShortURL) validateURL(rawURL string) error {
 	// Проверка на максимальную длину URL
 	if len(rawURL) > models.URLMaxLen {
-		return ErrValidation
+		return app.ErrValidation
 	}
 
 	// Проверка на валидный URL
 	parsed, err := url.ParseRequestURI(rawURL)
 	if err != nil {
-		return ErrValidation
+		return app.ErrValidation
 	}
 
 	// Проверка на http / https
 	// NB: URL.Scheme всегда будет в нижнем регистре (специально приводить не надо)
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return ErrValidation
+		return app.ErrValidation
 	}
 
 	return nil

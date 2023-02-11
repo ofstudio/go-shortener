@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/ofstudio/go-shortener/internal/app"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/usecases"
 )
@@ -49,7 +50,7 @@ func (h HTTPHandlers) shortURLRedirectToOriginal(w http.ResponseWriter, r *http.
 func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
-		respondWithError(w, ErrAuth)
+		respondWithError(w, app.ErrAuth)
 		return
 	}
 	b, err := io.ReadAll(r.Body)
@@ -68,7 +69,7 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	shortURL, err := h.u.ShortURL.Create(r.Context(), userID, originalURL)
 
 	// Если ссылка уже существует, возвращаем её
-	if errors.Is(err, usecases.ErrDuplicate) {
+	if errors.Is(err, app.ErrDuplicate) {
 		statusCode = http.StatusConflict
 		shortURL, err = h.u.ShortURL.GetByOriginalURL(r.Context(), originalURL)
 	}

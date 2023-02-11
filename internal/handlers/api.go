@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/ofstudio/go-shortener/internal/app"
 	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/usecases"
 )
@@ -77,7 +78,7 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
-		respondWithError(w, ErrAuth)
+		respondWithError(w, app.ErrAuth)
 		return
 	}
 
@@ -93,7 +94,7 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	shortURL, err := h.u.ShortURL.Create(r.Context(), userID, reqJSON.URL)
 
 	// Если ссылка уже существует, запрашиваем ее
-	if errors.Is(err, usecases.ErrDuplicate) {
+	if errors.Is(err, app.ErrDuplicate) {
 		statusCode = http.StatusConflict
 		shortURL, err = h.u.ShortURL.GetByOriginalURL(r.Context(), reqJSON.URL)
 	}
@@ -156,7 +157,7 @@ func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request)
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
-		respondWithError(w, ErrAuth)
+		respondWithError(w, app.ErrAuth)
 		return
 	}
 
@@ -211,7 +212,7 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
-		respondWithError(w, ErrAuth)
+		respondWithError(w, app.ErrAuth)
 		return
 	}
 
@@ -223,7 +224,7 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	if len(reqJSON) == 0 {
-		respondWithError(w, ErrValidation)
+		respondWithError(w, app.ErrValidation)
 		return
 	}
 	// Отправляем ответ
@@ -264,7 +265,7 @@ func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request)
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := middleware.UserIDFromContext(r.Context())
 	if !ok {
-		respondWithError(w, ErrAuth)
+		respondWithError(w, app.ErrAuth)
 		return
 	}
 
@@ -300,11 +301,11 @@ func parseJSONRequest(r *http.Request, v interface{}) error {
 	// Проверяем наличие Content-Type: application/json
 	contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || contentType != "application/json" {
-		return ErrValidation
+		return app.ErrValidation
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(v); err != nil {
-		return ErrValidation
+		return app.ErrValidation
 	}
 	return nil
 }
