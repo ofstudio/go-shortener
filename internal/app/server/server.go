@@ -69,6 +69,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	// Внутренний API
 	r.Group(func(r chi.Router) {
+		r.Use(middleware.NewWhitelist(s.cfg.TrustedSubnet).Handler)
 		r.Mount("/api/internal/", apiHandlers.InternalRoutes())
 	})
 
