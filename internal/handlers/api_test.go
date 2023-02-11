@@ -31,7 +31,7 @@ var _ = Describe("POST /shorten ", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewAPIHandlers(srv).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 
@@ -126,7 +126,7 @@ var _ = Describe("POST /shorten/batch", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewAPIHandlers(srv).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
@@ -174,7 +174,7 @@ var _ = Describe("GET /user/urls", func() {
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewAPIHandlers(srv).Routes())
+		r.Mount("/", NewAPIHandlers(srv).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
@@ -238,7 +238,7 @@ var _ = Describe("DELETE /user/urls", func() {
 		r := chi.NewRouter()
 		r.Use(middleware.NewAuthCookie(srv).Handler)
 		r.Mount("/", NewHTTPHandlers(srv).Routes())
-		r.Mount("/api", NewAPIHandlers(srv).Routes())
+		r.Mount("/api", NewAPIHandlers(srv).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 
@@ -300,4 +300,32 @@ var _ = Describe("DELETE /user/urls", func() {
 		})
 	})
 
+})
+
+var _ = Describe("GET /internal/stats", func() {
+	var server *ghttp.Server
+	cfg, _ := config.Default(nil)
+	repository := repo.NewMemoryRepo()
+	srv := usecases.NewContainer(cfg, repository)
+
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+		cfg.BaseURL = testParseURL(server.URL() + "/")
+		r := chi.NewRouter()
+		r.Mount("/", NewAPIHandlers(srv).InternalRoutes())
+		server.AppendHandlers(r.ServeHTTP)
+	})
+	AfterEach(func() {
+		server.Close()
+	})
+
+	It("should return valid JSON", func() {
+		res := testHTTPRequest("GET", server.URL()+"/stats", "", "")
+		Expect(res.StatusCode).Should(Equal(http.StatusOK))
+		Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
+		resBody, err := io.ReadAll(res.Body)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+		Expect(resBody).Should(MatchJSON(`{"users":0,"urls":0}`))
+	})
 })

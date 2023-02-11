@@ -60,11 +60,19 @@ func (s *Server) Start(ctx context.Context) error {
 		WithTTL(s.cfg.AuthTTL).
 		WithSecure(s.cfg.BaseURL.Scheme == "https").Handler)
 
-	// Добавляем рауты для обработки запросов.
+	// Публичные HTTP-запросы
 	r.Mount("/", handlers.NewHTTPHandlers(srv).Routes())
-	r.Mount("/api/", handlers.NewAPIHandlers(srv).Routes())
 
-	// Создаём HTTP-сервера
+	// Публичный API
+	apiHandlers := handlers.NewAPIHandlers(srv)
+	r.Mount("/api/", apiHandlers.PublicRoutes())
+
+	// Внутренний API
+	r.Group(func(r chi.Router) {
+		r.Mount("/api/internal/", apiHandlers.InternalRoutes())
+	})
+
+	// Создаём HTTP-сервер
 	s.server = &http.Server{
 		Addr:    s.cfg.ServerAddress,
 		Handler: r,

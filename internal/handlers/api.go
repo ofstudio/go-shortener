@@ -34,13 +34,20 @@ func NewAPIHandlers(srv *usecases.Container) *APIHandlers {
 	return &APIHandlers{srv}
 }
 
-// Routes - возвращает роутер с хендлерами
-func (h APIHandlers) Routes() chi.Router {
+// PublicRoutes - возвращает роутер с хендлерами
+func (h APIHandlers) PublicRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/shorten", h.shortURLCreate)
 	r.Post("/shorten/batch", h.shortURLCreateBatch)
 	r.Get("/user/urls", h.shortURLGetByUserID)
 	r.Delete("/user/urls", h.shortURLDeleteBatch)
+	return r
+}
+
+// InternalRoutes - возвращает роутер с внутренними хендлерами
+func (h APIHandlers) InternalRoutes() chi.Router {
+	r := chi.NewRouter()
+	r.Get("/stats", h.stats)
 	return r
 }
 
@@ -289,6 +296,52 @@ func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request)
 			ShortURL:    h.u.ShortURL.Resolve(shortURLs[i].ID),
 			OriginalURL: shortURLs[i].OriginalURL,
 		}
+	}
+
+	// Возвращаем ответ
+	respondWithJSON(w, http.StatusOK, res)
+}
+
+// stats - возвращает статистику сервиса.
+// Формат ответа:
+//
+//	{
+//	    "urls": 100,
+//	    "users": 10
+//	}
+//
+// @Tags internal
+// @Summary Возвращает статистику сервиса
+// @Security ipAuth
+// @ID stats
+// @Produce json
+// @Success 200 {object} handlers.stats.resType
+// @Failure 403
+// @Failure 500
+// @Router /internal/stats [get]
+func (h APIHandlers) stats(w http.ResponseWriter, r *http.Request) {
+	// Структура ответа
+	type resType struct {
+		Users int `json:"users"`
+		URLs  int `json:"urls"`
+	}
+
+	// Получаем статистику
+	userCount, err := h.u.User.Count(r.Context())
+	if err != nil {
+		respondWithError(w, err)
+		return
+	}
+	shortURLCount, err := h.u.ShortURL.Count(r.Context())
+	if err != nil {
+		respondWithError(w, err)
+		return
+	}
+
+	// Формируем ответ
+	res := resType{
+		Users: userCount,
+		URLs:  shortURLCount,
 	}
 
 	// Возвращаем ответ
