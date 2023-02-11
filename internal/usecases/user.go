@@ -27,3 +27,12 @@ func (u User) Create(ctx context.Context, user *models.User) error {
 	}
 	return nil
 }
+
+// Count - возвращает количество пользователей
+func (u User) Count(ctx context.Context) (int, error) {
+	count, err := u.repo.UserCount(ctx)
+	if err != nil {
+		return 0, app.ErrInternal
+	}
+	return count, nil
+}

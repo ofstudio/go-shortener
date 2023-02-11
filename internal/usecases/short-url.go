@@ -123,6 +123,15 @@ func (u ShortURL) DeleteBatch(ctx context.Context, userID uint, ids []string) er
 	return nil
 }
 
+// Count - возвращает количество сокращенных ссылок
+func (u ShortURL) Count(ctx context.Context) (int, error) {
+	count, err := u.repo.ShortURLCount(ctx)
+	if err != nil {
+		return 0, app.ErrInternal
+	}
+	return count, nil
+}
+
 // Resolve - возвращает сокращенный URL по его id
 func (u ShortURL) Resolve(id string) string {
 	return u.cfg.BaseURL.String() + id
