@@ -26,10 +26,10 @@ func NewWhitelist(addrs ...string) *Whitelist {
 
 	for _, addr := range addrs {
 		// Пытаемся разобрать адрес как CIDR
-		ip, ipNet, err := net.ParseCIDR(addr)
+		_, ipNet, err := net.ParseCIDR(addr)
 		// Если не получилось, то пытаемся разобрать как IP
 		if err != nil {
-			ip = net.ParseIP(addr)
+			ip := net.ParseIP(addr)
 			if ip != nil {
 				// Если получилось как IP, то добавляем в список разрешенных IP
 				allowedIPs = append(allowedIPs, ip)
