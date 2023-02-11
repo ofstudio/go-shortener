@@ -5,25 +5,23 @@ import (
 	"net/http"
 )
 
-var (
-	// ErrNotFound - не найдено
-	ErrNotFound = NewError(http.StatusNotFound, "not found")
+// ErrNotFound - не найдено
+var ErrNotFound = NewError(http.StatusNotFound, "not found")
 
-	// ErrValidation - ошибка валидации
-	ErrValidation = NewError(http.StatusBadRequest, "validation error")
+// ErrValidation - ошибка валидации
+var ErrValidation = NewError(http.StatusBadRequest, "validation error")
 
-	// ErrAuth - ошибка авторизации
-	ErrAuth = NewError(http.StatusUnauthorized, "unauthorized")
+// ErrAuth - ошибка авторизации
+var ErrAuth = NewError(http.StatusUnauthorized, "unauthorized")
 
-	// ErrDuplicate - дубликат
-	ErrDuplicate = NewError(http.StatusConflict, "duplicate")
+// ErrDuplicate - дубликат
+var ErrDuplicate = NewError(http.StatusConflict, "duplicate")
 
-	// ErrDeleted - удалено
-	ErrDeleted = NewError(http.StatusGone, "deleted")
+// ErrDeleted - удалено
+var ErrDeleted = NewError(http.StatusGone, "deleted")
 
-	// ErrInternal - внутренняя ошибка
-	ErrInternal = NewError(http.StatusInternalServerError, "internal error")
-)
+// ErrInternal - внутренняя ошибка
+var ErrInternal = NewError(http.StatusInternalServerError, "internal error")
 
 // Error - ошибка приложения
 type Error struct {
