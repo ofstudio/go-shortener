@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// TLS - конфигурация TLS для самоподписанного сертификата
-type TLS struct {
+// Cert - конфигурация для самоподписанного сертификата
+type Cert struct {
 	// Hosts - список хостов для сертификата
 	Hosts []string
 	// Subject - информация о владельце сертификата
@@ -19,8 +19,8 @@ type TLS struct {
 	TTL time.Duration
 }
 
-// DefaultTLS - конфигурация TLS по умолчанию для самоподписанного сертификата
-var tlsDefault = TLS{
+// defaultCert - конфигурация Cert по умолчанию для самоподписанного сертификата
+var defaultCert = Cert{
 	Hosts: []string{"localhost", "127.0.0.1"},
 	Subject: pkix.Name{
 		Organization: []string{"Yandex.Praktikum"},
@@ -30,13 +30,13 @@ var tlsDefault = TLS{
 	TTL:   time.Hour * 24 * 365 * 10, // 10 лет
 }
 
-// validate - проверка конфигурации TLS
-func (t *TLS) validate() error {
-	if len(t.Hosts) == 0 {
+// validate - проверка конфигурации Cert
+func (c *Cert) validate() error {
+	if len(c.Hosts) == 0 {
 		return fmt.Errorf("empty hosts list")
 	}
-	if t.TTL <= 0 {
-		return fmt.Errorf("invalid TTL: %v", t.TTL)
+	if c.TTL <= 0 {
+		return fmt.Errorf("invalid TTL: %v", c.TTL)
 	}
 	return nil
 }

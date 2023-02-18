@@ -15,11 +15,13 @@ type Config struct {
 	// BaseURL - базовый адрес сокращённого URL.
 	BaseURL url.URL `env:"BASE_URL"`
 
-	// ServerAddress - адрес для запуска HTTP-сервера.
-	ServerAddress string `env:"SERVER_ADDRESS"`
+	// HTTPServerAddress - адрес для запуска HTTP-сервера.
+	HTTPServerAddress string `env:"SERVER_ADDRESS"`
 
-	// FileStoragePath - файл для хранения данных.
-	// Если не задан, данные будут храниться в памяти.
+	// GRPCServerAddress - адрес для запуска GRPC-сервера.
+	GRPCServerAddress string `env:"GRPC_SERVER_ADDRESS"`
+
+	// FileStoragePath - файл для хранения данных
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 
 	// DatabaseDSN - строка с адресом подключения к БД
@@ -34,35 +36,13 @@ type Config struct {
 	// configFName - имя файла конфигурации
 	configFName string
 
-	TLS TLS
+	Cert Cert
 
-	// EnableHTTPS - использовать самоподписный TLS
+	// EnableHTTPS - использовать самоподписный Cert
 	EnableHTTPS bool `env:"ENABLE_HTTPS"`
 
 	// AuthTTL - время жизни авторизационного токена
 	AuthTTL time.Duration `env:"AUTH_TTL"`
-}
-
-// Default - конфигурационная функция, которая возвращает конфигурацию по умолчанию.
-// Входной параметр не используется.
-func Default(_ *Config) (*Config, error) {
-	secret, err := randSecret(64)
-	if err != nil {
-		return nil, err
-	}
-	cfg := Config{
-		BaseURL:       url.URL{Scheme: "http", Host: "localhost:8080", Path: "/"},
-		ServerAddress: "0.0.0.0:8080",
-		EnableHTTPS:   false,
-		TLS:           tlsDefault,
-		AuthTTL:       time.Minute * 60 * 24 * 30,
-		AuthSecret:    secret,
-		DatabaseDSN:   "",
-	}
-	if err = cfg.validate(); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
 }
 
 // validate - проверяет конфигурацию на валидность
@@ -71,7 +51,7 @@ func (c *Config) validate() error {
 	g.Go(c.validateAuthSecret)
 	g.Go(c.validateBaseURL)
 	g.Go(c.validateServerAddr)
-	g.Go(c.TLS.validate)
+	g.Go(c.Cert.validate)
 	return g.Wait()
 }
 
@@ -96,12 +76,18 @@ func (c *Config) validateBaseURL() error {
 
 // validateServerAddr - проверяет адрес для запуска HTTP-сервера.
 func (c *Config) validateServerAddr() error {
-	if c.ServerAddress == "" {
-		return fmt.Errorf("empty server address")
+	if c.HTTPServerAddress == "" {
+		return fmt.Errorf("empty HTTP server address")
 	}
-	_, err := net.ResolveTCPAddr("tcp", c.ServerAddress)
-	if err != nil {
-		return fmt.Errorf("invalid server address")
+	if _, err := net.ResolveTCPAddr("tcp", c.HTTPServerAddress); err != nil {
+		return fmt.Errorf("invalid HTTP server address")
+	}
+
+	if c.GRPCServerAddress == "" {
+		return fmt.Errorf("empty GRPC server address")
+	}
+	if _, err := net.ResolveTCPAddr("tcp", c.GRPCServerAddress); err != nil {
+		return fmt.Errorf("invalid GRPC server address")
 	}
 	return nil
 }

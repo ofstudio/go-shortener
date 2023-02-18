@@ -8,12 +8,13 @@ import (
 
 // jsonDTO - структура для считывания конфигурации из JSON-файла.
 type jsonDTO struct {
-	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
-	FileStoragePath string `json:"file_storage_path"`
-	DatabaseDSN     string `json:"database_dsn"`
-	TrustedSubnet   string `json:"trusted_subnet"`
-	EnableHTTPS     bool   `json:"enable_https"`
+	HTTPServerAddress string `json:"server_address"`
+	GRPCServerAddress string `json:"grpc_server_address"`
+	BaseURL           string `json:"base_url"`
+	FileStoragePath   string `json:"file_storage_path"`
+	DatabaseDSN       string `json:"database_dsn"`
+	TrustedSubnet     string `json:"trusted_subnet"`
+	EnableHTTPS       bool   `json:"enable_https"`
 }
 
 // FromJSONFile - конфигурационная функция, которая считывает конфигурацию приложения из JSON-файла.
@@ -22,6 +23,7 @@ type jsonDTO struct {
 //
 //	{
 //		"server_address": "localhost:8080",
+//		"grpc_server_address": "localhost:9090",
 //		"base_url": "http://localhost",
 //		"file_storage_path": "/path/to/file.db",
 //		"database_dsn": "",
@@ -62,8 +64,11 @@ func FromJSONFile(args ...string) CfgFunc {
 			}
 
 			// Перезаписываем поля из dto-структуры в конфигурацию
-			if dto.ServerAddress != "" {
-				cfg.ServerAddress = dto.ServerAddress
+			if dto.HTTPServerAddress != "" {
+				cfg.HTTPServerAddress = dto.HTTPServerAddress
+			}
+			if dto.GRPCServerAddress != "" {
+				cfg.GRPCServerAddress = dto.GRPCServerAddress
 			}
 			if dto.BaseURL != "" {
 				if u, err := url.Parse(dto.BaseURL); err != nil {

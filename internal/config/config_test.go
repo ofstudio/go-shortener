@@ -34,7 +34,7 @@ func (suite *configSuite) TestNewFromEnv_all() {
 	suite.Equal(time.Hour*1, actualCfg.AuthTTL)
 	suite.Equal("secret", actualCfg.AuthSecret)
 	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
-	suite.Equal("localhost:8888", actualCfg.ServerAddress)
+	suite.Equal("localhost:8888", actualCfg.HTTPServerAddress)
 	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
 }
 
@@ -57,7 +57,7 @@ func (suite *configSuite) TestNewFromEnv_partial() {
 
 	// Проверяем, что остальные параметры установлены в значения по умолчанию
 	suite.Equal(defaultCfg.AuthSecret, actualCfg.AuthSecret)
-	suite.Equal(defaultCfg.ServerAddress, actualCfg.ServerAddress)
+	suite.Equal(defaultCfg.HTTPServerAddress, actualCfg.HTTPServerAddress)
 }
 
 func (suite *configSuite) TestNewFromEnvAndCLI_all() {
@@ -74,7 +74,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_all() {
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны все заданные флаги
-	suite.Equal("127.0.0.0:8888", actualCfg.ServerAddress)
+	suite.Equal("127.0.0.0:8888", actualCfg.HTTPServerAddress)
 	suite.Equal("https://example.com/", actualCfg.BaseURL.String())
 	suite.Equal("/tmp/shortener.aof", actualCfg.FileStoragePath)
 	suite.Equal("192.168.0.0/16", actualCfg.TrustedSubnet)
@@ -102,7 +102,7 @@ func (suite *configSuite) TestNewFromEnvAndCLI_partial() {
 	suite.NoError(err)
 
 	// Проверяем, что прочитаны заданные флаги
-	suite.Equal("0.0.0.0:3000", actualCfg.ServerAddress)
+	suite.Equal("0.0.0.0:3000", actualCfg.HTTPServerAddress)
 	suite.Equal("postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", actualCfg.DatabaseDSN)
 
 	// Проверяем, что прочитаны заданные переменные окружения
@@ -141,11 +141,26 @@ func (suite *configSuite) TestValidateBaseURL() {
 }
 
 func (suite *configSuite) TestValidateServerAddress() {
-	// Проверяем на невалидный адрес сервера
+	// Проверяем на невалидный адрес HTTP-сервера
 	_, err := FromCLI("-a", "not-a-valid-tcp-address")(suite.defaultCfg())
 	suite.Error(err)
 	suite.setenv(map[string]string{"SERVER_ADDRESS": "0.0.0.0:100000"})
 	_, err = FromEnv(suite.defaultCfg())
+	suite.Error(err)
+	c := suite.defaultCfg()
+	c.HTTPServerAddress = ""
+	_, err = FromCLI()(c)
+	suite.Error(err)
+
+	// Проверяем на невалидный адрес gRPC-сервера
+	_, err = FromCLI("-g", "not-a-valid-tcp-address")(suite.defaultCfg())
+	suite.Error(err)
+	suite.setenv(map[string]string{"GRPC_SERVER_ADDRESS": "0.0.0.0:100000"})
+	_, err = FromEnv(suite.defaultCfg())
+	suite.Error(err)
+	c = suite.defaultCfg()
+	c.GRPCServerAddress = ""
+	_, err = FromCLI()(c)
 	suite.Error(err)
 }
 
@@ -153,7 +168,8 @@ func (suite *configSuite) TestFromJSONFile() {
 	suite.Run("valid from cli", func() {
 		cfg, err := FromJSONFile("-c", "testdata/cfg-valid.json")(suite.defaultCfg())
 		suite.Require().NoError(err)
-		suite.Equal("localhost:8080", cfg.ServerAddress)
+		suite.Equal("localhost:8080", cfg.HTTPServerAddress)
+		suite.Equal("localhost:9090", cfg.GRPCServerAddress)
 		suite.Equal("http://localhost/", cfg.BaseURL.String())
 		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
 		suite.Equal("", cfg.DatabaseDSN)
@@ -163,7 +179,8 @@ func (suite *configSuite) TestFromJSONFile() {
 		os.Setenv("CONFIG", "testdata/cfg-valid.json")
 		cfg, err := FromJSONFile()(suite.defaultCfg())
 		suite.Require().NoError(err)
-		suite.Equal("localhost:8080", cfg.ServerAddress)
+		suite.Equal("localhost:8080", cfg.HTTPServerAddress)
+		suite.Equal("localhost:9090", cfg.GRPCServerAddress)
 		suite.Equal("http://localhost/", cfg.BaseURL.String())
 		suite.Equal("/path/to/file.db", cfg.FileStoragePath)
 		suite.Equal("", cfg.DatabaseDSN)
@@ -183,7 +200,7 @@ func (suite *configSuite) TestFromJSONFile() {
 }
 
 func (suite *configSuite) TestTLS_validate() {
-	t := &TLS{
+	t := &Cert{
 		Hosts: []string{"example.com"},
 		Curve: tls.CurveP256,
 		TTL:   time.Hour,
@@ -206,7 +223,7 @@ func (suite *configSuite) TestTLS_validate() {
 	t.TTL = -1
 	suite.Error(t.validate())
 
-	t = &TLS{}
+	t = &Cert{}
 	suite.Error(t.validate())
 }
 
