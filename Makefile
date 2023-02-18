@@ -1,21 +1,24 @@
-.PHONY: run, build, test, swag, bench, pprof, pprof_diff, lint
+.PHONY: pb, run, build, test, swag, bench, pprof, pprof_diff, lint
 
-run:
+pb:
+	protoc --go_out=. --go-grpc_out=. ./api/*.proto
+
+run: pb
 	go run ./cmd/shortener/main.go
 
-build:
+build: pb
 	go build \
-	-ldflags " \
-		-X main.buildVersion=v1.0.0 \
+	-ldflags " -s -w \
+		-X main.buildVersion=v1.1.0 \
 		-X 'main.buildDate=$$(date +'%Y/%m/%d %H:%M:%S')' \
 		-X main.buildCommit=$$(git log -1 --pretty=format:%h)" \
 	-o ./cmd/shortener/shortener ./cmd/shortener/main.go
 
-test:
+test: pb
 	go test -v ./...
 
 swag:
-	swag init -d ./internal/handlers/ --g api.go -o ./api/ && rm ./api/docs.go api/swagger.json
+	swag init -d ./internal/http/handlers --g api.go -o ./api/ && rm ./api/docs.go api/swagger.json
 
 bench:
 	go test -bench=. ./internal/repo -benchmem -memprofile ./profiles/${p}.pprof
@@ -28,5 +31,5 @@ pprof_diff:
 
 lint:
 	go build -o ./cmd/staticlint/staticlint ./cmd/staticlint/main.go && \
-	./cmd/staticlint/staticlint ./...
+	./cmd/staticlint/staticlint ./cmd/... ./internal/... ./pkg/...
 

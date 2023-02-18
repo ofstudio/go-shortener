@@ -92,6 +92,8 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/handlers.shortURLCreate.resType'
+        "410":
+          description: Gone
         "500":
           description: Internal Server Error
       security:
@@ -128,8 +130,12 @@ paths:
           description: Unauthorized
           schema:
             type: string
+        "410":
+          description: Gone
+          schema:
+            type: string
         "500":
-          description: Internal Server Error
+          description: Internal server Error
           schema:
             type: string
       security:

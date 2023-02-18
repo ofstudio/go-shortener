@@ -1,0 +1,20 @@
+// Internal API service definition.
+
+syntax = "proto3";
+package proto;
+option go_package = "/api/proto";
+
+// StatsRequest - запрос статистики сервиса.
+message StatsRequest {
+}
+
+// StatsResponse - ответ статистики сервиса.
+message StatsResponse {
+    uint32 urls = 1;
+    uint32 users = 2;
+}
+
+// Internal - внутренний API сервиса.
+service Internal {
+    rpc Stats(StatsRequest) returns (StatsResponse) {}
+}
