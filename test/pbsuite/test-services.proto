@@ -1,0 +1,22 @@
+syntax = "proto3";
+package pbsuite;
+option go_package = "./pbsuite";
+
+message Empty {
+}
+
+message HelloResponse {
+  string message = 1;
+}
+
+message AnswerResponse {
+  int32 value = 1;
+}
+
+service HelloService {
+  rpc Hello(Empty) returns (HelloResponse);
+}
+
+service AnswerService {
+  rpc Answer(Empty) returns (AnswerResponse);
+}
