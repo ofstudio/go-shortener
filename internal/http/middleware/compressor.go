@@ -46,7 +46,7 @@ func (c *Compressor) Handler(next http.Handler) http.Handler {
 		// тк в его буфере могут быть неотправленные данные.
 		defer func() {
 			if err := cw.Close(); err != nil {
-				respondWithError(w, err)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
 		}()
 

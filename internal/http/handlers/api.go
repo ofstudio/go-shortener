@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ofstudio/go-shortener/internal/app"
-	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/pkgerrors"
+	"github.com/ofstudio/go-shortener/internal/providers/auth"
 	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
@@ -30,8 +30,8 @@ type APIHandlers struct {
 }
 
 // NewAPIHandlers - конструктор APIHandlers
-func NewAPIHandlers(srv *usecases.Container) *APIHandlers {
-	return &APIHandlers{srv}
+func NewAPIHandlers(u *usecases.Container) *APIHandlers {
+	return &APIHandlers{u}
 }
 
 // PublicRoutes - возвращает роутер с хендлерами
@@ -70,6 +70,7 @@ func (h APIHandlers) InternalRoutes() chi.Router {
 // @Failure 400
 // @Failure 401
 // @Failure 409 {object} handlers.shortURLCreate.resType
+// @Failure 410
 // @Failure 500
 // @Router /shorten [post]
 func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
@@ -83,9 +84,9 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Проверяем аутентифицирован ли пользователь
-	userID, ok := middleware.UserIDFromContext(r.Context())
+	userID, ok := auth.FromContext(r.Context())
 	if !ok {
-		respondWithError(w, app.ErrAuth)
+		respondWithError(w, pkgerrors.ErrAuth)
 		return
 	}
 
@@ -100,15 +101,14 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	statusCode := http.StatusCreated
 	shortURL, err := h.u.ShortURL.Create(r.Context(), userID, reqJSON.URL)
 
-	// Если ссылка уже существует, запрашиваем ее
-	if errors.Is(err, app.ErrDuplicate) {
-		statusCode = http.StatusConflict
-		shortURL, err = h.u.ShortURL.GetByOriginalURL(r.Context(), reqJSON.URL)
-	}
-
-	if err != nil {
+	if err != nil && !errors.Is(err, pkgerrors.ErrDuplicate) {
 		respondWithError(w, err)
 		return
+	}
+
+	// Если ссылка уже существует возвращаем код 409
+	if errors.Is(err, pkgerrors.ErrDuplicate) {
+		statusCode = http.StatusConflict
 	}
 
 	// Возвращаем ответ
@@ -147,7 +147,8 @@ func (h APIHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {array} handlers.shortURLCreateBatch.resType
 // @Failure 400 {string} Bad Request
 // @Failure 401 {string} string "Unauthorized"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 410 {string} string "Gone"
+// @Failure 500 {string} string "Internal server Error"
 // @Router /shorten/batch [post]
 func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// Структура элемента запроса
@@ -162,9 +163,9 @@ func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Проверяем аутентифицирован ли пользователь
-	userID, ok := middleware.UserIDFromContext(r.Context())
+	userID, ok := auth.FromContext(r.Context())
 	if !ok {
-		respondWithError(w, app.ErrAuth)
+		respondWithError(w, pkgerrors.ErrAuth)
 		return
 	}
 
@@ -179,7 +180,7 @@ func (h APIHandlers) shortURLCreateBatch(w http.ResponseWriter, r *http.Request)
 	resJSON := make([]resType, len(reqJSON))
 	for i, item := range reqJSON {
 		shortURL, err := h.u.ShortURL.Create(r.Context(), userID, item.OriginalURL)
-		if err != nil {
+		if err != nil && !errors.Is(err, pkgerrors.ErrDuplicate) {
 			respondWithError(w, err)
 			return
 		}
@@ -217,9 +218,9 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 	type reqType []string
 
 	// Проверяем аутентифицирован ли пользователь
-	userID, ok := middleware.UserIDFromContext(r.Context())
+	userID, ok := auth.FromContext(r.Context())
 	if !ok {
-		respondWithError(w, app.ErrAuth)
+		respondWithError(w, pkgerrors.ErrAuth)
 		return
 	}
 
@@ -231,7 +232,7 @@ func (h APIHandlers) shortURLDeleteBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	if len(reqJSON) == 0 {
-		respondWithError(w, app.ErrValidation)
+		respondWithError(w, pkgerrors.ErrValidation)
 		return
 	}
 	// Отправляем ответ
@@ -270,9 +271,9 @@ func (h APIHandlers) shortURLGetByUserID(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Проверяем аутентифицирован ли пользователь
-	userID, ok := middleware.UserIDFromContext(r.Context())
+	userID, ok := auth.FromContext(r.Context())
 	if !ok {
-		respondWithError(w, app.ErrAuth)
+		respondWithError(w, pkgerrors.ErrAuth)
 		return
 	}
 
@@ -354,11 +355,11 @@ func parseJSONRequest(r *http.Request, v interface{}) error {
 	// Проверяем наличие Content-Type: application/json
 	contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || contentType != "application/json" {
-		return app.ErrValidation
+		return pkgerrors.ErrValidation
 	}
 
 	if err = json.NewDecoder(r.Body).Decode(v); err != nil {
-		return app.ErrValidation
+		return pkgerrors.ErrValidation
 	}
 	return nil
 }

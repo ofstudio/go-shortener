@@ -17,7 +17,7 @@ func Decompressor(next http.Handler) http.Handler {
 		// Распаковываем запрос
 		gzipReader, err := gzip.NewReader(r.Body)
 		if err != nil {
-			respondWithError(w, err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		//goland:noinspection ALL

@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/ofstudio/go-shortener/internal/app"
-	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/pkgerrors"
+	"github.com/ofstudio/go-shortener/internal/providers/auth"
 	"github.com/ofstudio/go-shortener/internal/usecases"
 )
 
@@ -18,8 +18,8 @@ type HTTPHandlers struct {
 }
 
 // NewHTTPHandlers - конструктор HTTPHandlers
-func NewHTTPHandlers(srv *usecases.Container) *HTTPHandlers {
-	return &HTTPHandlers{u: srv}
+func NewHTTPHandlers(u *usecases.Container) *HTTPHandlers {
+	return &HTTPHandlers{u: u}
 }
 
 // Routes - возвращает роутер для HTTP-хендлеров
@@ -48,9 +48,9 @@ func (h HTTPHandlers) shortURLRedirectToOriginal(w http.ResponseWriter, r *http.
 // и возвращает ответ http.StatusCreated (201) и сокращённым URL
 // в виде текстовой строки в теле.
 func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.UserIDFromContext(r.Context())
+	userID, ok := auth.FromContext(r.Context())
 	if !ok {
-		respondWithError(w, app.ErrAuth)
+		respondWithError(w, pkgerrors.ErrAuth)
 		return
 	}
 	b, err := io.ReadAll(r.Body)
@@ -68,15 +68,14 @@ func (h HTTPHandlers) shortURLCreate(w http.ResponseWriter, r *http.Request) {
 	statusCode := http.StatusCreated
 	shortURL, err := h.u.ShortURL.Create(r.Context(), userID, originalURL)
 
-	// Если ссылка уже существует, возвращаем её
-	if errors.Is(err, app.ErrDuplicate) {
-		statusCode = http.StatusConflict
-		shortURL, err = h.u.ShortURL.GetByOriginalURL(r.Context(), originalURL)
-	}
-
-	if err != nil {
+	if err != nil && !errors.Is(err, pkgerrors.ErrDuplicate) {
 		respondWithError(w, err)
 		return
+	}
+
+	// Если ссылка уже существует в базе, то возвращаем статус 409
+	if errors.Is(err, pkgerrors.ErrDuplicate) {
+		statusCode = http.StatusConflict
 	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")

@@ -1,18 +1,21 @@
 package handlers
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/ofstudio/go-shortener/internal/config"
+	"github.com/ofstudio/go-shortener/internal/providers/auth"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/middleware"
 	"github.com/ofstudio/go-shortener/internal/models"
 	"github.com/ofstudio/go-shortener/internal/repo"
 	"github.com/ofstudio/go-shortener/internal/usecases"
@@ -22,15 +25,15 @@ var _ = Describe("shortURL handlers", func() {
 	server := &ghttp.Server{}
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := usecases.NewContainer(cfg, repository)
+	u := usecases.NewContainer(context.Background(), cfg, repository)
 	shortURLPath := ""
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewHTTPHandlers(srv).Routes())
+		r.Use(auth.NewSHA256Provider(cfg, u.User).Handler)
+		r.Mount("/", NewHTTPHandlers(u).Routes())
 		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 

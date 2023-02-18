@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,9 +14,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/middleware"
+	"github.com/ofstudio/go-shortener/internal/config"
 	"github.com/ofstudio/go-shortener/internal/models"
+	"github.com/ofstudio/go-shortener/internal/providers/auth"
 	"github.com/ofstudio/go-shortener/internal/repo"
 	"github.com/ofstudio/go-shortener/internal/usecases"
 )
@@ -24,14 +25,14 @@ var _ = Describe("POST /shorten ", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := usecases.NewContainer(cfg, repository)
+	u := usecases.NewContainer(context.Background(), cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewAPIHandlers(srv).PublicRoutes())
+		r.Use(auth.NewSHA256Provider(cfg, u.User).Handler)
+		r.Mount("/", NewAPIHandlers(u).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP, r.ServeHTTP)
 	})
 
@@ -119,14 +120,15 @@ var _ = Describe("POST /shorten/batch", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := usecases.NewContainer(cfg, repository)
+	u := usecases.NewContainer(context.Background(), cfg, repository)
+	var duplicateID string
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewAPIHandlers(srv).PublicRoutes())
+		r.Use(auth.NewSHA256Provider(cfg, u.User).Handler)
+		r.Mount("/", NewAPIHandlers(u).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
@@ -158,6 +160,34 @@ var _ = Describe("POST /shorten/batch", func() {
 			Expect(resJSON[1].ShortURL).ShouldNot(BeEmpty())
 			Expect(resJSON[2].CorrelationID).Should(Equal("3"))
 			Expect(resJSON[2].ShortURL).ShouldNot(BeEmpty())
+			duplicateID = resJSON[2].ShortURL
+		})
+	})
+
+	When("duplicate url sent", func() {
+		It("should successfully create short urls and use previous url id", func() {
+
+			body := `[
+				{"correlation_id":"100","original_url":"https://www.facebook.com"},
+				{"correlation_id":"101","original_url":"https://www.vk.com"}
+			]`
+			res := testHTTPRequest("POST", server.URL()+"/shorten/batch", "application/json", body)
+			Expect(res.StatusCode).Should(Equal(http.StatusCreated))
+			Expect(res.Header.Get("Content-Type")).Should(Equal("application/json"))
+			resBody, err := io.ReadAll(res.Body)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(res.Body.Close()).Error().ShouldNot(HaveOccurred())
+			resJSON := make([]struct {
+				CorrelationID string `json:"correlation_id"`
+				ShortURL      string `json:"short_url"`
+			}, 0)
+			Expect(json.Unmarshal(resBody, &resJSON)).Should(Succeed())
+			Expect(resJSON).Should(HaveLen(2))
+			Expect(resJSON[0].CorrelationID).Should(Equal("100"))
+			// Проверяем что у ранее созданного короткого URL не изменился ID
+			Expect(strings.HasSuffix(duplicateID, resJSON[0].ShortURL[24:])).Should(BeTrue())
+			Expect(resJSON[1].CorrelationID).Should(Equal("101"))
+			Expect(resJSON[1].ShortURL).ShouldNot(BeEmpty())
 		})
 	})
 })
@@ -166,15 +196,15 @@ var _ = Describe("GET /user/urls", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := usecases.NewContainer(cfg, repository)
+	u := usecases.NewContainer(context.Background(), cfg, repository)
 	var cookie *http.Cookie
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewAPIHandlers(srv).PublicRoutes())
+		r.Use(auth.NewSHA256Provider(cfg, u.User).Handler)
+		r.Mount("/", NewAPIHandlers(u).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
@@ -230,15 +260,15 @@ var _ = Describe("DELETE /user/urls", func() {
 	var cookie *http.Cookie
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := usecases.NewContainer(cfg, repository)
+	u := usecases.NewContainer(context.Background(), cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Use(middleware.NewAuthCookie(srv).Handler)
-		r.Mount("/", NewHTTPHandlers(srv).Routes())
-		r.Mount("/api", NewAPIHandlers(srv).PublicRoutes())
+		r.Use(auth.NewSHA256Provider(cfg, u.User).Handler)
+		r.Mount("/", NewHTTPHandlers(u).Routes())
+		r.Mount("/api", NewAPIHandlers(u).PublicRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 
@@ -306,13 +336,13 @@ var _ = Describe("GET /internal/stats", func() {
 	var server *ghttp.Server
 	cfg, _ := config.Default(nil)
 	repository := repo.NewMemoryRepo()
-	srv := usecases.NewContainer(cfg, repository)
+	u := usecases.NewContainer(context.Background(), cfg, repository)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		cfg.BaseURL = testParseURL(server.URL() + "/")
 		r := chi.NewRouter()
-		r.Mount("/", NewAPIHandlers(srv).InternalRoutes())
+		r.Mount("/", NewAPIHandlers(u).InternalRoutes())
 		server.AppendHandlers(r.ServeHTTP)
 	})
 	AfterEach(func() {
