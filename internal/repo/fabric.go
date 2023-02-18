@@ -1,9 +1,9 @@
 package repo
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 
-	"github.com/ofstudio/go-shortener/internal/app/config"
+	"github.com/ofstudio/go-shortener/internal/config"
 )
 
 // Fabric - фабрика для создания репозитория.
@@ -13,13 +13,13 @@ import (
 func Fabric(cfg *config.Config) (IRepo, error) {
 	switch {
 	case cfg.DatabaseDSN != "":
-		log.Print("Using Postgres storage")
+		log.Info().Msg("Using Postgres storage")
 		return NewSQLRepo(cfg.DatabaseDSN)
 	case cfg.FileStoragePath != "":
-		log.Print("Using file storage")
+		log.Info().Msg("Using file storage")
 		return NewAOFRepo(cfg.FileStoragePath)
 	default:
-		log.Print("Using in-memory storage")
+		log.Info().Msg("Using in-memory storage")
 		return NewMemoryRepo(), nil
 	}
 }
