@@ -23,6 +23,7 @@ func NewShortURLService(u *usecases.Container) *ShortURLService {
 	return &ShortURLService{u: u}
 }
 
+// Create - создание короткой ссылки.
 func (s ShortURLService) Create(ctx context.Context, request *proto.ShortURLCreateRequest) (*proto.ShortURLCreateResponse, error) {
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := auth.FromContext(ctx)
@@ -42,6 +43,7 @@ func (s ShortURLService) Create(ctx context.Context, request *proto.ShortURLCrea
 	}, nil
 }
 
+// CreateBatch - массовое создание коротких ссылок.
 func (s ShortURLService) CreateBatch(ctx context.Context, request *proto.ShortURLCreateBatchRequest) (*proto.ShortURLCreateBatchResponse, error) {
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := auth.FromContext(ctx)
@@ -66,6 +68,7 @@ func (s ShortURLService) CreateBatch(ctx context.Context, request *proto.ShortUR
 	return res, nil
 }
 
+// DeleteBatch - массовое удаление коротких ссылок.
 func (s ShortURLService) DeleteBatch(ctx context.Context, request *proto.ShortURLDeleteBatchRequest) (*proto.ShortURLDeleteBatchResponse, error) {
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := auth.FromContext(ctx)
@@ -84,6 +87,7 @@ func (s ShortURLService) DeleteBatch(ctx context.Context, request *proto.ShortUR
 	return &proto.ShortURLDeleteBatchResponse{}, nil
 }
 
+// GetByUserID - получение коротких ссылок пользователя.
 func (s ShortURLService) GetByUserID(ctx context.Context, _ *proto.ShortURLGetByUserIDRequest) (*proto.ShortURLGetByUserIDResponse, error) {
 	// Проверяем аутентифицирован ли пользователь
 	userID, ok := auth.FromContext(ctx)
