@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	v12 "github.com/ofstudio/go-shortener/api/proto"
+	"github.com/ofstudio/go-shortener/api/proto"
 	"github.com/ofstudio/go-shortener/internal/config"
 	"github.com/ofstudio/go-shortener/internal/grpc/interceptors"
 	"github.com/ofstudio/go-shortener/internal/grpc/services"
@@ -40,8 +40,8 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 		),
 	)
 	// Регистрируем сервисы
-	v12.RegisterShortURLServer(server, services.NewShortURLService(s.u))
-	v12.RegisterInternalServer(server, services.NewInternalService(s.u))
+	proto.RegisterShortURLServer(server, services.NewShortURLService(s.u))
+	proto.RegisterInternalServer(server, services.NewInternalService(s.u))
 
 	// Горутина для остановки gRPC-сервера
 	stop := make(chan struct{})
