@@ -34,10 +34,9 @@ const (
 
 // CookieOpts - опции для HTTP-куки.
 type CookieOpts struct {
-	Domain string
-	Path   string
-	Secure bool
-	//lint:ignore ST1003 - имя поля соответствует имени поля в http.Cookie
+	Domain   string
+	Path     string
+	Secure   bool
 	HttpOnly bool
 	SameSite http.SameSite
 }
