@@ -1,7 +1,9 @@
 package usecases
 
 import (
-	"github.com/ofstudio/go-shortener/internal/app/config"
+	"context"
+
+	"github.com/ofstudio/go-shortener/internal/config"
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
@@ -13,10 +15,10 @@ type Container struct {
 }
 
 // NewContainer - конструктор Container
-func NewContainer(cfg *config.Config, repo repo.IRepo) *Container {
+func NewContainer(ctx context.Context, cfg *config.Config, repo repo.IRepo) *Container {
 	return &Container{
-		ShortURL: NewShortURL(cfg, repo),
-		User:     NewUser(cfg, repo),
+		ShortURL: NewShortURL(ctx, repo, cfg.BaseURL.String()),
+		User:     NewUser(repo),
 		Health:   NewHealth(repo),
 	}
 }
