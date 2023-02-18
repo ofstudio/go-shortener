@@ -81,6 +81,7 @@ func (suite *e2eSuite) Test_HTTP_PublicAPI() {
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusCreated, resp.StatusCode)
 	})
 
@@ -95,6 +96,7 @@ func (suite *e2eSuite) Test_HTTP_PublicAPI() {
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusCreated, resp.StatusCode)
 	})
 
@@ -105,6 +107,7 @@ func (suite *e2eSuite) Test_HTTP_PublicAPI() {
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusAccepted, resp.StatusCode)
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -114,6 +117,7 @@ func (suite *e2eSuite) Test_HTTP_PublicAPI() {
 		suite.Require().NoError(err)
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusOK, resp.StatusCode)
 	})
 }
@@ -126,6 +130,7 @@ func (suite *e2eSuite) Test_HTTP_InternalAPI() {
 		req.Header.Set("X-Real-IP", "192.168.0.1")
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusOK, resp.StatusCode)
 	})
 
@@ -135,6 +140,7 @@ func (suite *e2eSuite) Test_HTTP_InternalAPI() {
 		req.Header.Set("X-Real-IP", "10.10.0.1")
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusForbidden, resp.StatusCode)
 	})
 }
@@ -161,6 +167,7 @@ func (suite *e2eSuite) Test_HTTP_Endpoints() {
 		suite.Require().NoError(err)
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusTemporaryRedirect, resp.StatusCode)
 		suite.Require().Equal("https://amazon.com", resp.Header.Get("Location"))
 	})
@@ -170,6 +177,7 @@ func (suite *e2eSuite) Test_HTTP_Endpoints() {
 		suite.Require().NoError(err)
 		resp, err := client.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusOK, resp.StatusCode)
 	})
 
