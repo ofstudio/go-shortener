@@ -124,6 +124,7 @@ func (suite *sha256ProviderHTTPSuite) TestHandler_CreateUser() {
 
 		resp, err := http.Get(suite.testHTTP.URL)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusOK, resp.StatusCode)
 		suite.Require().Len(resp.Cookies(), 1)
 		suite.Require().Equal("auth_token", resp.Cookies()[0].Name)
@@ -143,6 +144,7 @@ func (suite *sha256ProviderHTTPSuite) TestHandler_AcceptToken() {
 
 		resp, err := http.Get(suite.testHTTP.URL)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Require().Equal(http.StatusOK, resp.StatusCode)
 		suite.Require().Len(resp.Cookies(), 1)
 		suite.Require().Equal("auth_token", resp.Cookies()[0].Name)
@@ -155,8 +157,9 @@ func (suite *sha256ProviderHTTPSuite) TestHandler_AcceptToken() {
 		req, err := http.NewRequest(http.MethodGet, suite.testHTTP.URL, nil)
 		suite.Require().NoError(err)
 		req.AddCookie(c)
-		_, err = http.DefaultClient.Do(req)
+		resp, err = http.DefaultClient.Do(req)
 		suite.Require().NoError(err)
+		defer suite.NoError(resp.Body.Close())
 
 		n, err = suite.u.Count(context.Background())
 		suite.Require().NoError(err)

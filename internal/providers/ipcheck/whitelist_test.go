@@ -111,6 +111,7 @@ func (suite *whitelistHTTPSuite) TestHandler() {
 		req.Header.Set("X-Real-IP", "127.0.0.1")
 		resp, err := http.DefaultClient.Do(req)
 		suite.NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Equal(http.StatusOK, resp.StatusCode)
 	})
 
@@ -120,6 +121,7 @@ func (suite *whitelistHTTPSuite) TestHandler() {
 		req.Header.Set("X-Real-IP", "127.0.0.2")
 		resp, err := http.DefaultClient.Do(req)
 		suite.NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Equal(http.StatusForbidden, resp.StatusCode)
 	})
 
@@ -129,6 +131,7 @@ func (suite *whitelistHTTPSuite) TestHandler() {
 		req.Header.Set("X-Real-IP", "localhost")
 		resp, err := http.DefaultClient.Do(req)
 		suite.NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Equal(http.StatusForbidden, resp.StatusCode)
 	})
 
@@ -137,6 +140,7 @@ func (suite *whitelistHTTPSuite) TestHandler() {
 		suite.NoError(err)
 		resp, err := http.DefaultClient.Do(req)
 		suite.NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Equal(http.StatusForbidden, resp.StatusCode)
 	})
 
@@ -146,6 +150,7 @@ func (suite *whitelistHTTPSuite) TestHandler() {
 		req.Header.Set("X-Forwarded-For", "127.0.0.1")
 		resp, err := http.DefaultClient.Do(req)
 		suite.NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Equal(http.StatusOK, resp.StatusCode)
 	})
 
@@ -155,6 +160,7 @@ func (suite *whitelistHTTPSuite) TestHandler() {
 		req.Header.Set("X-Forwarded-For", "127.0.0.2")
 		resp, err := http.DefaultClient.Do(req)
 		suite.NoError(err)
+		defer suite.NoError(resp.Body.Close())
 		suite.Equal(http.StatusForbidden, resp.StatusCode)
 	})
 }

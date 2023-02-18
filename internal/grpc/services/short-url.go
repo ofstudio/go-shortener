@@ -54,13 +54,13 @@ func (s ShortURLService) CreateBatch(ctx context.Context, request *proto.ShortUR
 		Items: make([]*proto.ShortURLCreateBatchResponse_Item, 0, len(request.Items)),
 	}
 	for _, item := range request.Items {
-		shortUrl, err := s.u.ShortURL.Create(ctx, userID, item.OriginalUrl)
+		shortURL, err := s.u.ShortURL.Create(ctx, userID, item.OriginalUrl)
 		if err != nil && !errors.Is(err, pkgerrors.ErrDuplicate) {
 			return nil, Error(err)
 		}
 		res.Items = append(res.Items, &proto.ShortURLCreateBatchResponse_Item{
 			CorrelationId: item.CorrelationId,
-			ShortUrl:      s.u.ShortURL.Resolve(shortUrl.ID),
+			ShortUrl:      s.u.ShortURL.Resolve(shortURL.ID),
 		})
 	}
 	return res, nil
