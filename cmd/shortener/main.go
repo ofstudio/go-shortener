@@ -2,45 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"syscall"
+	"time"
 
-	"github.com/ofstudio/go-shortener/internal/app/config"
-	"github.com/ofstudio/go-shortener/internal/app/server"
-	"github.com/ofstudio/go-shortener/pkg/shutdown"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"github.com/ofstudio/go-shortener/internal/app"
+	"github.com/ofstudio/go-shortener/internal/config"
 )
-
-func main() {
-
-	// Выводим информацию о сборке
-	fmt.Print(buildInfo())
-
-	// Считываем конфигурацию
-	cfg, err := config.Compose(
-		config.Default,                      // Значения по умолчанию
-		config.FromJSONFile(os.Args[1:]...), // Значения из JSON-файла
-		config.FromEnv,                      // Значения из переменных окружения
-		config.FromCLI(os.Args[1:]...),      // Значения из флагов командной строки
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Контекст для остановки приложения
-	ctx, cancel := shutdown.ContextWithShutdown(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	defer cancel()
-
-	// Создаём сервер
-	srv := server.NewServer(cfg)
-	log.Printf("Starting server at %s", cfg.ServerAddress)
-	if err = srv.Start(ctx); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Exiting...")
-}
 
 var (
 	// Актуальные значения переменных устанавливаются при сборке приложения.
@@ -49,9 +20,49 @@ var (
 	buildCommit  = "N/A"
 )
 
-// buildInfo - возвращает информацию о сборке.
-func buildInfo() string {
-	return "Build version: " + buildVersion + "\n" +
-		"Build date: " + buildDate + "\n" +
-		"Build commit: " + buildCommit + "\n"
+func init() {
+	writer := zerolog.NewConsoleWriter()
+	writer.TimeFormat = time.RFC3339
+	log.Logger = zerolog.New(writer).
+		Level(zerolog.InfoLevel).
+		With().Timestamp().
+		Logger()
+}
+
+func main() {
+
+	// Выводим информацию о сборке
+	log.Info().
+		Str("commit", buildCommit).
+		Str("date", buildDate).
+		Str("version", buildVersion).
+		Msg("Build info")
+
+	// Считываем конфигурацию
+	cfg, err := config.Compose(
+		config.Default,                     // Значения по умолчанию
+		config.FromJSONFile(os.Args[:]...), // Значения из JSON-файла
+		config.FromEnv,                     // Значения из переменных окружения
+		config.FromCLI(os.Args[1:]...),     // Значения из флагов командной строки
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error while loading config")
+	}
+
+	// Контекст для остановки приложения
+	ctx, cancel := app.ContextWithShutdown(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer cancel()
+
+	// Создаем и запускаем приложение
+	a := app.NewApp(cfg)
+	if err = a.Start(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Application fatal error")
+	}
+
+	log.Info().Msg("Exiting")
 }

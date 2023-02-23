@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/ofstudio/go-shortener/internal/app"
-	"github.com/ofstudio/go-shortener/internal/app/config"
+	"github.com/ofstudio/go-shortener/internal/config"
 	"github.com/ofstudio/go-shortener/internal/models"
+	"github.com/ofstudio/go-shortener/internal/pkgerrors"
 	"github.com/ofstudio/go-shortener/internal/repo"
 )
 
@@ -27,8 +27,8 @@ func (suite *shortURLSuite) SetupTest() {
 	suite.cfg, _ = config.Default(nil)
 	suite.Require().NoError(err)
 	r := repo.NewMemoryRepo()
-	suite.ShortURL = NewShortURL(suite.cfg, r)
-	suite.User = NewUser(suite.cfg, r)
+	suite.ShortURL = NewShortURL(context.Background(), r, suite.cfg.BaseURL.String())
+	suite.User = NewUser(r)
 	suite.Require().NoError(suite.User.Create(context.Background(), &models.User{}))
 }
 
@@ -47,29 +47,31 @@ func (suite *shortURLSuite) TestCreate() {
 	suite.Run("invalid url", func() {
 		// Невалидный URL
 		_, err := suite.ShortURL.Create(context.Background(), 1, "invalid url")
-		suite.Equal(app.ErrValidation, err)
+		suite.Equal(pkgerrors.ErrValidation, err)
 		// Недопустимый протокол
 		_, err = suite.ShortURL.Create(context.Background(), 1, "file:///tmp/test.txt")
-		suite.Equal(app.ErrValidation, err)
+		suite.Equal(pkgerrors.ErrValidation, err)
 		// Пустой URL
 		_, err = suite.ShortURL.Create(context.Background(), 1, "")
-		suite.Equal(app.ErrValidation, err)
+		suite.Equal(pkgerrors.ErrValidation, err)
 		// Слишком длинный URL
 		_, err = suite.ShortURL.Create(context.Background(), 1, "https://google.com/"+strings.Repeat("a", models.URLMaxLen))
-		suite.Equal(app.ErrValidation, err)
+		suite.Equal(pkgerrors.ErrValidation, err)
 	})
 
 	// Несуществующий пользователь
 	suite.Run("invalid user", func() {
 		_, err := suite.ShortURL.Create(context.Background(), 100, "https://google.com")
-		suite.Equal(app.ErrNotFound, err)
+		suite.Equal(pkgerrors.ErrNotFound, err)
 	})
 
 	suite.Run("duplicate url", func() {
-		_, err := suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
+		s1, err := suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
 		suite.NoError(err)
-		_, err = suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
-		suite.Equal(app.ErrDuplicate, err)
+		s2, err := suite.ShortURL.Create(context.Background(), 1, "https://duplicate.com")
+		suite.Equal(pkgerrors.ErrDuplicate, err)
+		suite.Equal(s1.ID, s2.ID)
+		suite.Equal(s1.OriginalURL, s2.OriginalURL)
 	})
 }
 
@@ -90,7 +92,7 @@ func (suite *shortURLSuite) TestGetByID() {
 	// Несуществующая короткая ссылка
 	suite.Run("not found", func() {
 		_, err := suite.ShortURL.GetByID(context.Background(), "not found")
-		suite.Equal(app.ErrNotFound, err)
+		suite.Equal(pkgerrors.ErrNotFound, err)
 	})
 }
 
@@ -143,7 +145,7 @@ func (suite *shortURLSuite) TestGetByOriginalURL() {
 	// Несуществующая оригинальная ссылка
 	suite.Run("not found", func() {
 		_, err := suite.ShortURL.GetByOriginalURL(context.Background(), "not found")
-		suite.Equal(app.ErrNotFound, err)
+		suite.Equal(pkgerrors.ErrNotFound, err)
 	})
 }
 

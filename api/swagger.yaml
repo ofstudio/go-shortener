@@ -31,6 +31,13 @@ definitions:
       short_url:
         type: string
     type: object
+  handlers.stats.resType:
+    properties:
+      urls:
+        type: integer
+      users:
+        type: integer
+    type: object
 info:
   contact:
     email: ofstudio@yandex.ru
@@ -39,6 +46,25 @@ info:
   title: Go-Shortener API
   version: "1.0"
 paths:
+  /internal/stats:
+    get:
+      operationId: stats
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.stats.resType'
+        "403":
+          description: Forbidden
+        "500":
+          description: Internal Server Error
+      security:
+      - ipAuth: []
+      summary: Возвращает статистику сервиса
+      tags:
+      - internal
   /shorten:
     post:
       consumes:
@@ -66,6 +92,8 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/handlers.shortURLCreate.resType'
+        "410":
+          description: Gone
         "500":
           description: Internal Server Error
       security:
@@ -102,8 +130,12 @@ paths:
           description: Unauthorized
           schema:
             type: string
+        "410":
+          description: Gone
+          schema:
+            type: string
         "500":
-          description: Internal Server Error
+          description: Internal server Error
           schema:
             type: string
       security:

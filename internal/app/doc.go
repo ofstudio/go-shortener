@@ -1,2 +1,2 @@
-// Package app - общие компоненты приложения.
+// Package app - сервер приложения.
 package app

@@ -10,12 +10,14 @@ type (
 const (
 	stmtUserCreate stmt = iota
 	stmtUserGetByID
+	stmtUserCount
 	stmtShortURLCreate
 	stmtShortURLGetByID
 	stmtShortURLGetByUserID
 	stmtShortURLGetByOriginalURL
 	stmtShortURLDelete
 	stmtShortURLDeleteBatch
+	stmtShortURLCount
 )
 
 var queries = map[stmt]string{
@@ -27,6 +29,9 @@ var queries = map[stmt]string{
 	stmtUserGetByID: `
 		SELECT id FROM users 
 	  	WHERE id = $1
+	`,
+	stmtUserCount: `
+		SELECT COUNT(*) FROM users
 	`,
 	stmtShortURLCreate: `	
 		INSERT INTO short_urls (id, original_url, user_id)
@@ -53,6 +58,9 @@ var queries = map[stmt]string{
 		UPDATE short_urls
 		SET deleted = true
 		WHERE user_id = $1 AND id = ANY($2)
+	`,
+	stmtShortURLCount: `
+		SELECT COUNT(*) FROM short_urls
 	`,
 }
 

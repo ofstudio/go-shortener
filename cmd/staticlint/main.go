@@ -1,9 +1,10 @@
 package main
 
 import (
+	"golang.org/x/tools/go/analysis/multichecker"
+
 	"github.com/ofstudio/go-shortener/pkg/staticlint"
 	"github.com/ofstudio/go-shortener/pkg/staticlint/osexit"
-	"golang.org/x/tools/go/analysis/multichecker"
 )
 
 func main() {

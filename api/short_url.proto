@@ -1,0 +1,63 @@
+// The ShortURL service definition.
+
+syntax = "proto3";
+package proto;
+option go_package = "/api/proto";
+
+// ShortURLCreateRequest - запрос на создание короткой ссылки
+message ShortURLCreateRequest {
+  string url = 1;
+}
+
+// ShortURLCreateResponse - ответ на запрос на создание короткой ссылки
+message ShortURLCreateResponse {
+  string result = 1;
+}
+
+// ShortURLCreateBatchRequest - запрос на массовое создание коротких ссылок
+message ShortURLCreateBatchRequest {
+  message Item {
+    string correlation_id = 1;
+    string original_url = 2;
+  }
+  repeated Item items = 1;
+}
+
+// ShortURLCreateBatchResponse - ответ на запрос на массовое создание коротких ссылок
+message ShortURLCreateBatchResponse {
+  message Item {
+    string correlation_id = 1;
+    string short_url = 2;
+  }
+  repeated Item items = 1;
+}
+
+// ShortURLDeleteBatchRequest - запрос на массовое удаление коротких ссылок
+message ShortURLDeleteBatchRequest {
+  repeated string items = 1;
+}
+
+// ShortURLDeleteBatchResponse - ответ на запрос на массовое удаление коротких ссылок
+message ShortURLDeleteBatchResponse {
+}
+
+// ShortURLGetByUserIDRequest - запрос на получение списка коротких ссылок текущего пользователя
+message ShortURLGetByUserIDRequest {
+}
+
+// ShortURLGetByUserIDResponse - ответ на запрос на получение списка коротких ссылок текущего пользователя
+message ShortURLGetByUserIDResponse {
+  message Item {
+    string original_url = 1;
+    string short_url = 2;
+  }
+  repeated Item items = 1;
+}
+
+// ShortURL - сервис для работы с короткими ссылками
+service ShortURL {
+  rpc Create(ShortURLCreateRequest) returns (ShortURLCreateResponse) {}
+  rpc CreateBatch(ShortURLCreateBatchRequest) returns (ShortURLCreateBatchResponse) {}
+  rpc DeleteBatch(ShortURLDeleteBatchRequest) returns (ShortURLDeleteBatchResponse) {}
+  rpc GetByUserID(ShortURLGetByUserIDRequest) returns (ShortURLGetByUserIDResponse) {}
+}
